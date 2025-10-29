@@ -1,7 +1,9 @@
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
-import { useAccount, useChainId, useSwitchChain } from 'wagmi'
+import { useAccount, useChainId, useSwitchChain, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { encodeFunctionData } from 'viem'
+import { COGNI_SIGNAL_ABI, TOKEN_VOTING_ABI } from '../lib/abis'
 
 interface ProposalParams {
   dao?: string
@@ -14,11 +16,13 @@ interface ProposalParams {
   target?: string
 }
 
+
 export default function MergeChangePage() {
   const router = useRouter()
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
   const { switchChain } = useSwitchChain()
+  const { writeContract, isPending, isSuccess, error, data } = useWriteContract()
   const [params, setParams] = useState<ProposalParams>({})
 
   const getChainName = (chainId: string) => {
@@ -54,6 +58,51 @@ export default function MergeChangePage() {
   }, [router.isReady, router.query])
 
   const isValidParams = params.dao && params.plugin && params.signal && params.chainId && params.repoUrl && params.pr && params.action && params.target
+
+  const createProposal = async () => {
+    if (!isValidParams || !params.signal || !params.plugin) return
+
+    try {
+      // Step 1: Encode the CogniSignal.signal() call
+      const signalCallData = encodeFunctionData({
+        abi: COGNI_SIGNAL_ABI,
+        functionName: 'signal',
+        args: [
+          'github',                    // vcs
+          params.repoUrl!,             // repoUrl
+          params.action!,              // action
+          params.target!,              // target
+          params.pr!,                  // resource (PR number)
+          '0x'                         // extra (empty bytes)
+        ],
+      })
+
+      // Step 2: Create the Action structure for Aragon
+      const actions = [{
+        to: params.signal as `0x${string}`,  // CogniSignal contract address
+        value: 0n,                           // No ETH value
+        data: signalCallData,                // Encoded function call
+      }]
+
+      // Step 3: Create the proposal
+      await writeContract({
+        address: params.plugin as `0x${string}`,  // Aragon plugin address
+        abi: TOKEN_VOTING_ABI,
+        functionName: 'createProposal',
+        args: [
+          '0x',      // _metadata (empty)
+          actions,   // _actions
+          0n,        // _allowFailureMap (no failures allowed)
+          0n,        // _startDate (immediate)
+          0n,        // _endDate (plugin default)
+          0,         // _voteOption (None)
+          false      // _tryEarlyExecution
+        ],
+      })
+    } catch (error) {
+      console.error('Failed to create proposal:', error)
+    }
+  }
 
   return (
     <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
@@ -122,23 +171,49 @@ export default function MergeChangePage() {
                 
                 <button 
                   style={{
-                    backgroundColor: isCorrectChain ? '#0070f3' : '#ccc',
+                    backgroundColor: isCorrectChain && !isPending ? '#0070f3' : '#ccc',
                     color: 'white',
                     border: 'none',
                     padding: '12px 24px',
                     borderRadius: '8px',
-                    cursor: isCorrectChain ? 'pointer' : 'not-allowed',
+                    cursor: isCorrectChain && !isPending ? 'pointer' : 'not-allowed',
                     fontSize: '16px'
                   }}
-                  disabled={!isCorrectChain}
-                  onClick={() => alert('TODO: Implement createProposal transaction')}
+                  disabled={!isCorrectChain || isPending}
+                  onClick={createProposal}
                 >
-                  Create Proposal
+                  {isPending ? 'Creating Proposal...' : 'Create Proposal'}
                 </button>
                 {!isCorrectChain && (
                   <p style={{ color: '#666', fontSize: '14px', marginTop: '0.5rem' }}>
                     Switch to {getChainName(params.chainId || '')} to enable proposal creation
                   </p>
+                )}
+
+                {error && (
+                  <div style={{ backgroundColor: '#f8d7da', color: '#721c24', padding: '1rem', borderRadius: '8px', marginTop: '1rem', border: '1px solid #f5c6cb' }}>
+                    <p><strong>❌ Transaction Failed</strong></p>
+                    <p style={{ fontSize: '14px', marginTop: '0.5rem' }}>{error.message}</p>
+                  </div>
+                )}
+
+                {isSuccess && data && (
+                  <div style={{ backgroundColor: '#d4edda', color: '#155724', padding: '1rem', borderRadius: '8px', marginTop: '1rem', border: '1px solid #c3e6cb' }}>
+                    <p><strong>✅ Proposal Created Successfully!</strong></p>
+                    <p style={{ fontSize: '14px', marginTop: '0.5rem' }}>
+                      Transaction Hash: <code style={{ backgroundColor: 'rgba(0,0,0,0.1)', padding: '2px 4px', borderRadius: '4px' }}>{data}</code>
+                    </p>
+                    <p style={{ fontSize: '14px', marginTop: '0.5rem' }}>
+                      View on <a 
+                        href={`https://app.aragon.org/dao/${params.chainId === '11155111' ? 'ethereum-sepolia' : 'ethereum'}/${params.dao}/proposals`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: '#007bff', textDecoration: 'underline' }}
+                      >
+                        Aragon App
+                      </a>
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
