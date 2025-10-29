@@ -69,7 +69,7 @@ export default function MergeChangePage() {
         functionName: 'signal',
         args: [
           'github',                    // vcs
-          params.repoUrl!,             // repoUrl
+          decodeURIComponent(params.repoUrl!), // repoUrl (decode URL encoding)
           params.action!,              // action
           params.target!,              // target
           params.pr!,                  // resource (PR number)
@@ -80,7 +80,7 @@ export default function MergeChangePage() {
       // Step 2: Create the Action structure for Aragon
       const actions = [{
         to: params.signal as `0x${string}`,  // CogniSignal contract address
-        value: 0n,                           // No ETH value
+        value: BigInt(0),                    // No ETH value
         data: signalCallData,                // Encoded function call
       }]
 
@@ -92,9 +92,9 @@ export default function MergeChangePage() {
         args: [
           '0x',      // _metadata (empty)
           actions,   // _actions
-          0n,        // _allowFailureMap (no failures allowed)
-          0n,        // _startDate (immediate)
-          0n,        // _endDate (plugin default)
+          BigInt(0), // _allowFailureMap (no failures allowed)
+          BigInt(0), // _startDate (immediate)
+          BigInt(0), // _endDate (plugin default)
           0,         // _voteOption (None)
           false      // _tryEarlyExecution
         ],
@@ -117,7 +117,7 @@ export default function MergeChangePage() {
           {isConnected && !isCorrectChain && params.chainId ? (
             <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid #ffeaa7' }}>
               <p><strong>⚠️ Wrong Network</strong></p>
-              <p>You're connected to {getChainNameById(chainId)} but this proposal requires {getChainName(params.chainId)}.</p>
+              <p>You&apos;re connected to {getChainNameById(chainId)} but this proposal requires {getChainName(params.chainId)}.</p>
               <button 
                 style={{
                   backgroundColor: '#f39c12',
@@ -139,7 +139,7 @@ export default function MergeChangePage() {
 
           <h2>Proposal Summary</h2>
           <div style={{ backgroundColor: '#f5f5f5', padding: '1rem', borderRadius: '8px', marginBottom: '2rem' }}>
-            <p><strong>Repository:</strong> {params.repoUrl}</p>
+            <p><strong>Repository:</strong> {params.repoUrl ? decodeURIComponent(params.repoUrl) : ''}</p>
             <p><strong>Pull Request:</strong> #{params.pr}</p>
             <p><strong>Action:</strong> {params.action}</p>
             <p><strong>Target:</strong> {params.target}</p>
@@ -160,11 +160,11 @@ export default function MergeChangePage() {
                   <p><strong>Target:</strong> {params.signal}</p>
                   <p><strong>Parameters:</strong></p>
                   <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem' }}>
-                    <li>vcs: "github"</li>
-                    <li>repoUrl: "{params.repoUrl}"</li>
-                    <li>action: "{params.action}"</li>
-                    <li>target: "{params.target}"</li>
-                    <li>resource: "{params.pr}"</li>
+                    <li>vcs: &quot;github&quot;</li>
+                    <li>repoUrl: &quot;{params.repoUrl ? decodeURIComponent(params.repoUrl) : ''}&quot;</li>
+                    <li>action: &quot;{params.action}&quot;</li>
+                    <li>target: &quot;{params.target}&quot;</li>
+                    <li>resource: &quot;{params.pr}&quot;</li>
                     <li>extra: 0x</li>
                   </ul>
                 </div>
@@ -232,8 +232,8 @@ export default function MergeChangePage() {
             <li>chainId - Chain ID for validation</li>
             <li>repoUrl - Full GitHub repository URL</li>
             <li>pr - Pull request number</li>
-            <li>action - Action to take (e.g., "merge")</li>
-            <li>target - Target type (e.g., "change")</li>
+            <li>action - Action to take (e.g., &quot;merge&quot;)</li>
+            <li>target - Target type (e.g., &quot;change&quot;)</li>
           </ul>
           <p><strong>Example URL:</strong></p>
           <code style={{ backgroundColor: '#f5f5f5', padding: '0.5rem', display: 'block', marginTop: '0.5rem' }}>
