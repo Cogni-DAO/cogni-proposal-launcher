@@ -9,15 +9,15 @@ import {
 } from 'wagmi/chains';
 
 export const config = getDefaultConfig({
-  appName: 'RainbowKit App',
+  appName: 'Cogni Proposal Launcher',
   projectId: 'YOUR_PROJECT_ID',
   chains: [
     mainnet,
+    sepolia, // Always include Sepolia for governance proposals
     polygon,
     optimism,
     arbitrum,
     base,
-    ...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === 'true' ? [sepolia] : []),
   ],
   ssr: true,
 });

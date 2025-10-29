@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
-import { useAccount, useNetwork, useSwitchNetwork } from 'wagmi'
+import { useAccount, useChainId, useSwitchChain } from 'wagmi'
 
 interface ProposalParams {
   dao?: string
@@ -17,7 +17,26 @@ interface ProposalParams {
 export default function MergeChangePage() {
   const router = useRouter()
   const { address, isConnected } = useAccount()
+  const chainId = useChainId()
+  const { switchChain } = useSwitchChain()
   const [params, setParams] = useState<ProposalParams>({})
+
+  const getChainName = (chainId: string) => {
+    switch (chainId) {
+      case '1': return 'Ethereum Mainnet'
+      case '11155111': return 'Sepolia Testnet'
+      case '137': return 'Polygon'
+      case '8453': return 'Base'
+      default: return `Chain ${chainId}`
+    }
+  }
+
+  const getChainNameById = (id: number) => {
+    return getChainName(id.toString())
+  }
+
+  const requiredChainId = parseInt(params.chainId || '0')
+  const isCorrectChain = chainId === requiredChainId
 
   useEffect(() => {
     if (router.isReady) {
@@ -46,13 +65,36 @@ export default function MergeChangePage() {
 
       {isValidParams ? (
         <div>
+          {isConnected && !isCorrectChain && params.chainId ? (
+            <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid #ffeaa7' }}>
+              <p><strong>⚠️ Wrong Network</strong></p>
+              <p>You're connected to {getChainNameById(chainId)} but this proposal requires {getChainName(params.chainId)}.</p>
+              <button 
+                style={{
+                  backgroundColor: '#f39c12',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  marginTop: '0.5rem'
+                }}
+                onClick={() => switchChain?.({ chainId: requiredChainId })}
+              >
+                Switch to {getChainName(params.chainId)}
+              </button>
+            </div>
+          ) : isConnected ? (
+            <p style={{ color: '#28a745', marginBottom: '2rem' }}>✅ Connected to {getChainName(params.chainId || '')}</p>
+          ) : null}
+
           <h2>Proposal Summary</h2>
           <div style={{ backgroundColor: '#f5f5f5', padding: '1rem', borderRadius: '8px', marginBottom: '2rem' }}>
             <p><strong>Repository:</strong> {params.repoUrl}</p>
             <p><strong>Pull Request:</strong> #{params.pr}</p>
             <p><strong>Action:</strong> {params.action}</p>
             <p><strong>Target:</strong> {params.target}</p>
-            <p><strong>Chain ID:</strong> {params.chainId}</p>
+            <p><strong>Network:</strong> {getChainName(params.chainId || '')} (Chain ID: {params.chainId})</p>
             <hr style={{ margin: '1rem 0', border: 'none', borderTop: '1px solid #ddd' }} />
             <p><strong>DAO:</strong> {params.dao}</p>
             <p><strong>Plugin:</strong> {params.plugin}</p>
@@ -80,18 +122,24 @@ export default function MergeChangePage() {
                 
                 <button 
                   style={{
-                    backgroundColor: '#0070f3',
+                    backgroundColor: isCorrectChain ? '#0070f3' : '#ccc',
                     color: 'white',
                     border: 'none',
                     padding: '12px 24px',
                     borderRadius: '8px',
-                    cursor: 'pointer',
+                    cursor: isCorrectChain ? 'pointer' : 'not-allowed',
                     fontSize: '16px'
                   }}
+                  disabled={!isCorrectChain}
                   onClick={() => alert('TODO: Implement createProposal transaction')}
                 >
                   Create Proposal
                 </button>
+                {!isCorrectChain && (
+                  <p style={{ color: '#666', fontSize: '14px', marginTop: '0.5rem' }}>
+                    Switch to {getChainName(params.chainId || '')} to enable proposal creation
+                  </p>
+                )}
               </div>
             </div>
           ) : (
