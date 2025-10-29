@@ -37,4 +37,4 @@ Next.js pages that handle deep links from **cogni-git-review** and convert them 
 **Data Flow:**
 URL params → Validate → Connect wallet → Encode actions[] → createProposal() → CogniSignal.emit()
 
-Demo url: http://localhost:3001/merge-change?dao=0x123&plugin=0x456&signal=0x789&repo=Cogni-DAO%2Fcogni-site&pr=11&reason=checks_failed&targets=merge
+Demo url: http://localhost:3001/merge-change?dao=0xF480b40bF6d6C8765AA51b7C913cecF23c79E5C6&plugin=0xDD5bB976336145E8372C10CEbf2955c878a32308&signal=0x804CB616EAddD7B6956E67B1D8b2987207160dF7&chainId=11155111&repoUrl=https%3A//github.com/Cogni-DAO/preview-test-repo&pr=56&action=merge&target=change
