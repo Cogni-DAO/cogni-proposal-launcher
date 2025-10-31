@@ -1,75 +1,46 @@
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
+import { useMemo, useEffect } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
-import { useAccount, useChainId, useSwitchChain, useWriteContract, useReadContract } from 'wagmi'
+import { useAccount, useChainId, useWriteContract, useReadContract } from 'wagmi'
 import { FAUCET_ABI } from '../lib/abis'
+import { validate } from '../lib/deeplink'
+import { joinSpec } from '../lib/deeplinkSpecs'
+import { getChainName } from '../lib/chainUtils'
+import NetworkSwitcher from '../components/NetworkSwitcher'
 
-interface JoinParams {
-  chainId?: string
-  faucet?: string
-  token?: string
-  amount?: string
-  decimals?: string
-}
 
 
 export default function JoinPage() {
   const router = useRouter()
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
-  const { switchChain } = useSwitchChain()
-  const { writeContract, isPending, isSuccess, error, data } = useWriteContract()
-  const [params, setParams] = useState<JoinParams>({})
+  const { writeContract, isPending, isSuccess, error } = useWriteContract()
+  
+  const params = useMemo(() => (
+    router.isReady ? validate(router.query, joinSpec) : null
+  ), [router.isReady, router.query])
 
-  const getChainName = (chainId: string) => {
-    switch (chainId) {
-      case '1': return 'Ethereum Mainnet'
-      case '11155111': return 'Sepolia Testnet'
-      case '137': return 'Polygon'
-      case '8453': return 'Base'
-      default: return `Chain ${chainId}`
-    }
-  }
-
-  const getChainNameById = (id: number) => {
-    return getChainName(id.toString())
-  }
-
-  const requiredChainId = parseInt(params.chainId || '0')
+  const requiredChainId = params ? parseInt(params.chainId) : 0
   const isCorrectChain = chainId === requiredChainId
-
-  useEffect(() => {
-    if (router.isReady) {
-      setParams({
-        chainId: router.query.chainId as string,
-        faucet: router.query.faucet as string,
-        token: router.query.token as string,
-        amount: router.query.amount as string,
-        decimals: router.query.decimals as string,
-      })
-    }
-  }, [router.isReady, router.query])
-
-  const isValidParams = params.chainId && params.faucet && params.token && params.amount && params.decimals
 
   // Check if user has already claimed
   const { data: hasClaimed, refetch: refetchClaimStatus } = useReadContract({
-    address: params.faucet as `0x${string}`,
+    address: params?.faucet as `0x${string}`,
     abi: FAUCET_ABI,
     functionName: 'hasClaimed',
     args: address ? [address] : undefined,
     query: {
-      enabled: !!(params.faucet && address && isCorrectChain)
+      enabled: !!(params?.faucet && address && isCorrectChain)
     }
   })
 
   // Get remaining tokens in faucet
   const { data: remainingTokens } = useReadContract({
-    address: params.faucet as `0x${string}`,
+    address: params?.faucet as `0x${string}`,
     abi: FAUCET_ABI,
     functionName: 'remainingTokens',
     query: {
-      enabled: !!(params.faucet && isCorrectChain)
+      enabled: !!(params?.faucet && isCorrectChain)
     }
   })
 
@@ -83,7 +54,7 @@ export default function JoinPage() {
   }
 
   const executeClaim = async () => {
-    if (!params.faucet || !isCorrectChain) return
+    if (!params?.faucet || !isCorrectChain) return
 
     try {
       await writeContract({
@@ -128,37 +99,21 @@ export default function JoinPage() {
         <ConnectButton />
       </div>
 
-      {isValidParams ? (
+      {params ? (
         <div>
-          {isConnected && !isCorrectChain && params.chainId ? (
-            <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid #ffeaa7' }}>
-              <p><strong>⚠️ Wrong Network</strong></p>
-              <p>You&apos;re connected to {getChainNameById(chainId)} but this proposal requires {getChainName(params.chainId)}.</p>
-              <button 
-                style={{
-                  backgroundColor: '#f39c12',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  marginTop: '0.5rem'
-                }}
-                onClick={() => switchChain?.({ chainId: requiredChainId })}
-              >
-                Switch to {getChainName(params.chainId)}
-              </button>
-            </div>
-          ) : isConnected ? (
-            <p style={{ color: '#28a745', marginBottom: '2rem' }}>✅ Connected to {getChainName(params.chainId || '')}</p>
-          ) : null}
+          <NetworkSwitcher
+            isConnected={isConnected}
+            currentChainId={chainId}
+            requiredChainId={requiredChainId}
+            isCorrectChain={isCorrectChain}
+          />
 
           <div style={{ backgroundColor: '#e8f4fd', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem' }}>
             <h3 style={{ marginTop: 0 }}>Token Claim Details</h3>
-            <p><strong>Amount:</strong> {params.amount && params.decimals ? formatTokenAmount(params.amount, params.decimals) : ''} tokens</p>
+            <p><strong>Amount:</strong> {formatTokenAmount(params.amount, params.decimals)} tokens</p>
             <p><strong>Token Contract:</strong> {params.token}</p>
             <p><strong>Faucet Contract:</strong> {params.faucet}</p>
-            <p><strong>Network:</strong> {getChainName(params.chainId || '')} (Chain ID: {params.chainId})</p>
+            <p><strong>Network:</strong> {getChainName(params.chainId)} (Chain ID: {params.chainId})</p>
             {remainingTokens !== undefined && (
               <p><strong>Remaining in Faucet:</strong> {remainingTokens.toString()} tokens</p>
             )}
@@ -177,7 +132,7 @@ export default function JoinPage() {
                 <div style={{ backgroundColor: '#d4edda', padding: '1rem', borderRadius: '8px', border: '1px solid #c3e6cb' }}>
                   <p style={{ margin: 0, color: '#155724' }}>
                     <strong>🎉 Claim Successful!</strong><br />
-                    You have successfully claimed {params.amount && params.decimals ? formatTokenAmount(params.amount, params.decimals) : ''} tokens.
+                    You have successfully claimed {formatTokenAmount(params.amount, params.decimals)} tokens.
                   </p>
                 </div>
               ) : (
@@ -196,7 +151,7 @@ export default function JoinPage() {
                     onClick={executeClaim}
                     disabled={isPending}
                   >
-                    {isPending ? 'Claiming...' : `Claim ${params.amount && params.decimals ? formatTokenAmount(params.amount, params.decimals) : ''} Tokens`}
+                    {isPending ? 'Claiming...' : `Claim ${formatTokenAmount(params.amount, params.decimals)} Tokens`}
                   </button>
                 </div>
               )}

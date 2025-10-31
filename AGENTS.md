@@ -30,6 +30,10 @@ Connect wallet → render summary → encode actions[] → createProposal(...) �
 **/join:**
 Connect wallet → check eligibility → claim tokens → show success status.
 
+**Validation:**
+
+Server-side middleware validates deep link parameters before page load. Invalid parameters return `400 Bad Request` with error details.
+
 **Actions:**
 
 **/merge-change:** Call `CogniSignal.emit(...)` with PR context.
@@ -56,38 +60,49 @@ https://app.cogni.org/merge-change?dao=0xF480b40bF6d6C8765AA51b7C913cecF23c79E5C
 
 ## Architecture Overview
 
-**Trigger Source:** 
-- **cogni-git-review** (https://github.com/Cogni-DAO/cogni-git-review)
-  - Monitors GitHub Pull Requests
-  - Generates deep links on merge failures/permission issues
-  - Links to `/merge-change` route in this app
+**Request Flow:**
+Deep link → Middleware validation → Page render → Wallet connect → Transaction
 
-**Smart Contracts:**
-- **cogni-signal-evm-contracts** (https://github.com/Cogni-DAO/cogni-signal-evm-contracts)  
-  - Deploys the DAO + CogniSignal + CogniAction contracts
-  - Target for governance proposals created by this launcher
+**Core Libraries:**
+- `src/lib/deeplink.ts` - Generic parameter validation with typed specs
+- `src/lib/deeplinkSpecs.ts` - Route-specific validation rules  
+- `src/lib/chainUtils.ts` - Chain name resolution utilities
+- `src/components/NetworkSwitcher.tsx` - Reusable network switching UI
+- `src/middleware.ts` - Server-side parameter validation (returns 400 for invalid links)
 
-**Backend Consumer:**
-- **cogni-git-admin** (https://github.com/Cogni-DAO/cogni-git-admin)
-  - Consumes on-chain signals from passed proposals
-  - Executes actual Git operations (merge, permissions, etc.)
-
-**Related:**
-- **cogni-site** (https://github.com/Cogni-DAO/cogni-site) - Main site with nav/footer links
+**External Integration:**
+- **cogni-git-review** - Generates deep links on PR failures
+- **cogni-signal-evm-contracts** - DAO and signal contract deployments  
+- **cogni-git-admin** - Consumes on-chain signals to execute Git operations
+- **cogni-site** - Main site navigation
 
 ## Interfaces
 
-**Aragon OSx plugin:** `createProposal(metadata, actions[], allowFailureMap)`
+**Validation Types:**
+- `"addr"` - 40-character hex address (`/^0x[0-9a-fA-F]{40}$/`)
+- `"int"` - Integer string (`/^\d+$/`) 
+- `"dec"` - Decimal string (`/^\d+(\.\d+)?$/`)
+- `"str"` - Any string
 
-**DAO action:** `{ to, value, data }`
+**Route Specs:**
+- `joinSpec`: `{ chainId: "int", faucet: "addr", token: "addr", amount: "dec", decimals: "int" }`
+- `mergeSpec`: `{ dao: "addr", plugin: "addr", signal: "addr", chainId: "int", repoUrl: "str", pr: "int", action: "str", target: "str" }`
 
-**Signal ABI:** `emitSignal(repo, pr, reason, targets, extra?)` (pin exact ABI from deployed version)
-
-**Faucet ABI:** `claim()`, `hasClaimed(address)`, `remainingTokens()` (pin exact ABI from deployed version)
+**Contract Interfaces:**
+- **Aragon OSx plugin:** `createProposal(metadata, actions[], allowFailureMap)`
+- **DAO action:** `{ to, value, data }`
+- **Signal ABI:** `emitSignal(repo, pr, reason, targets, extra?)` 
+- **Faucet ABI:** `claim()`, `hasClaimed(address)`, `remainingTokens()`
 
 ## Security
 
-- Require `code.length > 0` for dao, plugin, signal before enabling submit
+**Parameter Validation:**
+- Server-side validation via middleware prevents invalid requests
+- Type-safe validation specs enforce address format, numeric values
+- Client-side validation provides user feedback for corrections
+
+**Contract Safety:**
+- Require `code.length > 0` for dao, plugin, signal before enabling submit  
 - Hard-reject unknown chainId. Pin ABIs to deployed versions
 - No private keys. User signs with wallet
 
@@ -145,3 +160,8 @@ Pinned constants or per-link params from cogni-git-review.
 - Exact ABI and chain versioning are non-negotiable
 - Small surface area beats feature breadth
 - This repo stays public and app-only; shared logic moves to a core packages repo when needed
+
+
+
+
+https://app.cogni.org/join?chainId=11155111&faucet=0xFACADE0000000000000000000000000000000000&token=0xFDb18054A225E0Ca74BdD8d11BF35633e7893Fc0&amount=1&decimals=18

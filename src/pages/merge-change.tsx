@@ -1,66 +1,31 @@
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
+import { useMemo } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
-import { useAccount, useChainId, useSwitchChain, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { useAccount, useChainId, useWriteContract } from 'wagmi'
 import { encodeFunctionData } from 'viem'
 import { COGNI_SIGNAL_ABI, TOKEN_VOTING_ABI } from '../lib/abis'
+import { validate } from '../lib/deeplink'
+import { mergeSpec } from '../lib/deeplinkSpecs'
+import { getChainName } from '../lib/chainUtils'
+import NetworkSwitcher from '../components/NetworkSwitcher'
 
-interface ProposalParams {
-  dao?: string
-  plugin?: string  
-  signal?: string
-  chainId?: string
-  repoUrl?: string
-  pr?: string
-  action?: string
-  target?: string
-}
 
 
 export default function MergeChangePage() {
   const router = useRouter()
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
-  const { switchChain } = useSwitchChain()
   const { writeContract, isPending, isSuccess, error, data } = useWriteContract()
-  const [params, setParams] = useState<ProposalParams>({})
+  
+  const params = useMemo(() => (
+    router.isReady ? validate(router.query, mergeSpec) : null
+  ), [router.isReady, router.query])
 
-  const getChainName = (chainId: string) => {
-    switch (chainId) {
-      case '1': return 'Ethereum Mainnet'
-      case '11155111': return 'Sepolia Testnet'
-      case '137': return 'Polygon'
-      case '8453': return 'Base'
-      default: return `Chain ${chainId}`
-    }
-  }
-
-  const getChainNameById = (id: number) => {
-    return getChainName(id.toString())
-  }
-
-  const requiredChainId = parseInt(params.chainId || '0')
+  const requiredChainId = params ? parseInt(params.chainId) : 0
   const isCorrectChain = chainId === requiredChainId
 
-  useEffect(() => {
-    if (router.isReady) {
-      setParams({
-        dao: router.query.dao as string,
-        plugin: router.query.plugin as string,
-        signal: router.query.signal as string,
-        chainId: router.query.chainId as string,
-        repoUrl: router.query.repoUrl as string,
-        pr: router.query.pr as string,
-        action: router.query.action as string,
-        target: router.query.target as string,
-      })
-    }
-  }, [router.isReady, router.query])
-
-  const isValidParams = params.dao && params.plugin && params.signal && params.chainId && params.repoUrl && params.pr && params.action && params.target
-
   const createProposal = async () => {
-    if (!isValidParams || !params.signal || !params.plugin) return
+    if (!params) return
 
     try {
       // Step 1: Encode the CogniSignal.signal() call
@@ -69,10 +34,10 @@ export default function MergeChangePage() {
         functionName: 'signal',
         args: [
           'github',                    // vcs
-          decodeURIComponent(params.repoUrl!), // repoUrl (decode URL encoding)
-          params.action!,              // action
-          params.target!,              // target
-          params.pr!,                  // resource (PR number)
+          decodeURIComponent(params.repoUrl), // repoUrl (decode URL encoding)
+          params.action,               // action
+          params.target,               // target
+          params.pr,                   // resource (PR number)
           '0x'                         // extra (empty bytes)
         ],
       })
@@ -112,38 +77,22 @@ export default function MergeChangePage() {
         <ConnectButton />
       </div>
 
-      {isValidParams ? (
+      {params ? (
         <div>
-          {isConnected && !isCorrectChain && params.chainId ? (
-            <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid #ffeaa7' }}>
-              <p><strong>⚠️ Wrong Network</strong></p>
-              <p>You&apos;re connected to {getChainNameById(chainId)} but this proposal requires {getChainName(params.chainId)}.</p>
-              <button 
-                style={{
-                  backgroundColor: '#f39c12',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  marginTop: '0.5rem'
-                }}
-                onClick={() => switchChain?.({ chainId: requiredChainId })}
-              >
-                Switch to {getChainName(params.chainId)}
-              </button>
-            </div>
-          ) : isConnected ? (
-            <p style={{ color: '#28a745', marginBottom: '2rem' }}>✅ Connected to {getChainName(params.chainId || '')}</p>
-          ) : null}
+          <NetworkSwitcher
+            isConnected={isConnected}
+            currentChainId={chainId}
+            requiredChainId={requiredChainId}
+            isCorrectChain={isCorrectChain}
+          />
 
           <h2>Proposal Summary</h2>
           <div style={{ backgroundColor: '#f5f5f5', padding: '1rem', borderRadius: '8px', marginBottom: '2rem' }}>
-            <p><strong>Repository:</strong> {params.repoUrl ? decodeURIComponent(params.repoUrl) : ''}</p>
+            <p><strong>Repository:</strong> {decodeURIComponent(params.repoUrl)}</p>
             <p><strong>Pull Request:</strong> #{params.pr}</p>
             <p><strong>Action:</strong> {params.action}</p>
             <p><strong>Target:</strong> {params.target}</p>
-            <p><strong>Network:</strong> {getChainName(params.chainId || '')} (Chain ID: {params.chainId})</p>
+            <p><strong>Network:</strong> {getChainName(params.chainId)} (Chain ID: {params.chainId})</p>
             <hr style={{ margin: '1rem 0', border: 'none', borderTop: '1px solid #ddd' }} />
             <p><strong>DAO:</strong> {params.dao}</p>
             <p><strong>Plugin:</strong> {params.plugin}</p>
@@ -161,7 +110,7 @@ export default function MergeChangePage() {
                   <p><strong>Parameters:</strong></p>
                   <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem' }}>
                     <li>vcs: &quot;github&quot;</li>
-                    <li>repoUrl: &quot;{params.repoUrl ? decodeURIComponent(params.repoUrl) : ''}&quot;</li>
+                    <li>repoUrl: &quot;{decodeURIComponent(params.repoUrl)}&quot;</li>
                     <li>action: &quot;{params.action}&quot;</li>
                     <li>target: &quot;{params.target}&quot;</li>
                     <li>resource: &quot;{params.pr}&quot;</li>
@@ -186,7 +135,7 @@ export default function MergeChangePage() {
                 </button>
                 {!isCorrectChain && (
                   <p style={{ color: '#666', fontSize: '14px', marginTop: '0.5rem' }}>
-                    Switch to {getChainName(params.chainId || '')} to enable proposal creation
+                    Switch to {getChainName(params.chainId)} to enable proposal creation
                   </p>
                 )}
 
@@ -205,7 +154,7 @@ export default function MergeChangePage() {
                     </p>
                     <p style={{ fontSize: '14px', marginTop: '0.5rem' }}>
                       View on <a 
-                        href={`https://app.aragon.org/dao/${params.chainId === '11155111' ? 'ethereum-sepolia' : 'ethereum'}/${params.dao}/proposals`}
+                        href={`https://app.aragon.org/dao/ethereum-sepolia/${params.dao}/proposals`}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{ color: '#007bff', textDecoration: 'underline' }}
