@@ -1,7 +1,7 @@
 // middleware.ts at repo root
 import { NextResponse, NextRequest } from 'next/server'
 import { validate } from './lib/deeplink'
-import { joinSpec, mergeSpec } from './lib/deeplinkSpecs'
+import { joinSpec, mergeSpec, proposeFaucetSpec } from './lib/deeplinkSpecs'
 
 export function middleware(req: NextRequest) {
   console.log('[MW]', req.nextUrl.pathname, req.nextUrl.search)
@@ -18,6 +18,12 @@ export function middleware(req: NextRequest) {
   if (url.pathname === '/merge-change') {
     if (!validate(params, mergeSpec)) {
       return new NextResponse('Invalid parameters for /merge-change', { status: 400 })
+    }
+  }
+  
+  if (url.pathname === '/propose-faucet') {
+    if (!validate(params, proposeFaucetSpec)) {
+      return new NextResponse('Invalid parameters for /propose-faucet', { status: 400 })
     }
   }
   

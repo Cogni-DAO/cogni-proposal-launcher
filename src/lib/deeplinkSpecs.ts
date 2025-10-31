@@ -18,3 +18,11 @@ export const joinSpec = {
   amount: "dec", 
   decimals: "int",
 } as const
+
+export const proposeFaucetSpec = {
+  dao: "addr",
+  plugin: "addr", 
+  token: "addr",
+  faucet: "addr",
+  chainId: "int",
+} as const

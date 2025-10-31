@@ -19,6 +19,13 @@ Next.js pages that handle validated deep links and convert them into blockchain 
 **Flow:** Parameter validation → Connect wallet → Network switching → Show proposal summary → Create proposal → Emit CogniSignal
 **Components:** Uses `NetworkSwitcher` for chain validation and switching
 
+### `/propose-faucet.tsx` - Faucet Permission Route
+**Triggered by:** Direct deep links to enable faucet functionality  
+**URL Params:** `dao`, `plugin`, `token`, `faucet`, `chainId`  
+**Flow:** Parameter validation → Connect wallet → Network switching → Show permission summary → Create proposal → Grant faucet permissions
+**Components:** Uses `NetworkSwitcher` for chain validation and switching  
+**Contract:** Creates proposal with 3 permission grants (MINT, CONFIG, PAUSE)
+
 ## Shared Architecture
 
 **Validation System:**

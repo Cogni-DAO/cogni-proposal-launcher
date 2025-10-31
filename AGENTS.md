@@ -8,7 +8,9 @@
 
 **Primary Route:** `/merge-change` - Handle merge/PR approval requests
 
-**Secondary Route:** `/join` - Token faucet for DAO membership
+**Secondary Routes:** 
+- `/join` - Token faucet for DAO membership
+- `/propose-faucet` - Create proposal to enable faucet permissions
 
 **Future Routes (V2):**
 - `/grant` - Collaborator access grants
@@ -22,6 +24,9 @@
 **/join:**
 - `chainId`, `faucet`, `token`, `amount`, `decimals`
 
+**/propose-faucet:**
+- `dao`, `plugin`, `token`, `faucet`, `chainId`
+
 **Flow:**
 
 **/merge-change:**
@@ -29,6 +34,9 @@ Connect wallet → render summary → encode actions[] → createProposal(...) �
 
 **/join:**
 Connect wallet → check eligibility → claim tokens → show success status.
+
+**/propose-faucet:**
+Connect wallet → show permission summary → create proposal → grant mint/config/pause permissions.
 
 **Validation:**
 
@@ -40,11 +48,15 @@ Server-side middleware validates deep link parameters before page load. Invalid 
 
 **/join:** Call `FaucetMinter.claim()` for governance tokens.
 
+**/propose-faucet:** Call `PermissionManager.grant()` three times to enable faucet permissions.
+
 **Outputs:**
 
 **/merge-change:** Proposal link (Aragon app), proposalId, tx hash, link back to PR.
 
 **/join:** Success message, claimed token amount, transaction hash.
+
+**/propose-faucet:** Proposal link (Aragon app), proposalId, tx hash for permission grants.
 
 ## Demo Links
 
@@ -87,6 +99,7 @@ Deep link → Middleware validation → Page render → Wallet connect → Trans
 **Route Specs:**
 - `joinSpec`: `{ chainId: "int", faucet: "addr", token: "addr", amount: "dec", decimals: "int" }`
 - `mergeSpec`: `{ dao: "addr", plugin: "addr", signal: "addr", chainId: "int", repoUrl: "str", pr: "int", action: "str", target: "str" }`
+- `proposeFaucetSpec`: `{ dao: "addr", plugin: "addr", token: "addr", faucet: "addr", chainId: "int" }`
 
 **Contract Interfaces:**
 - **Aragon OSx plugin:** `createProposal(metadata, actions[], allowFailureMap)`
