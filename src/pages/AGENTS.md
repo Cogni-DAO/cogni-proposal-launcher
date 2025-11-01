@@ -17,14 +17,17 @@ Next.js pages that handle validated deep links and convert them into blockchain 
 **Triggered by:** cogni-git-review when PR merge fails due to permissions/checks  
 **URL Params:** `dao`, `plugin`, `signal`, `chainId`, `repoUrl`, `pr`, `action`, `target`  
 **Flow:** Parameter validation → Connect wallet → Network switching → Show proposal summary → Create proposal → Emit CogniSignal
-**Components:** Uses `NetworkSwitcher` for chain validation and switching
+**Components:** Uses `NetworkSwitcher` and `ProposalActionButton` for consistent proposal creation UX
 
 ### `/propose-faucet.tsx` - Faucet Permission Route
 **Triggered by:** Direct deep links to enable faucet functionality  
 **URL Params:** `dao`, `plugin`, `token`, `faucet`, `chainId`  
 **Flow:** Parameter validation → Connect wallet → Network switching → Show permission summary → Create proposal → Grant faucet permissions
-**Components:** Uses `NetworkSwitcher` for chain validation and switching  
-**Contract:** Creates proposal with 3 permission grants (MINT, CONFIG, PAUSE)
+**Components:** Uses `NetworkSwitcher` and `ProposalActionButton` for consistent proposal creation UX
+**Contract:** Creates proposal with 3 permission grants:
+- MINT_PERMISSION: `grant(token, faucet, 0x154c0081...)` - Allows faucet to mint tokens
+- CONFIG_PERMISSION: `grant(faucet, dao, 0x4daa3c18...)` - Allows DAO to configure faucet  
+- PAUSE_PERMISSION: `grant(faucet, dao, 0xe1493260...)` - Allows DAO to pause faucet
 
 ## Shared Architecture
 
@@ -35,6 +38,7 @@ Next.js pages that handle validated deep links and convert them into blockchain 
 
 **Common Components:**
 - `NetworkSwitcher` - Handles wrong network detection and switching
+- `ProposalActionButton` - Standardized proposal creation workflow with success/error states
 - `ConnectButton` from RainbowKit - Wallet connection interface
 
 **Data Flow:**

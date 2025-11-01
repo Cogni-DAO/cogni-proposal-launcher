@@ -8,6 +8,7 @@ import { validate } from '../lib/deeplink'
 import { proposeFaucetSpec } from '../lib/deeplinkSpecs'
 import { getChainName } from '../lib/chainUtils'
 import NetworkSwitcher from '../components/NetworkSwitcher'
+import ProposalActionButton from '../components/ProposalActionButton'
 
 // Permission IDs - these match the contract constants
 const MINT_PERMISSION_ID = '0x154c00819833dac601ee5ddded6fda79d9d8b506b911b3dbd54cdb95fe6c3686' // keccak256("MINT_PERMISSION")
@@ -113,16 +114,6 @@ export default function ProposeFaucetPage() {
     }
   }
 
-  const getErrorMessage = (error: any) => {
-    if (error?.message?.includes('User rejected')) {
-      return 'Transaction was cancelled by user'
-    }
-    if (error?.message?.includes('insufficient funds')) {
-      return 'Insufficient funds for transaction'
-    }
-    return error?.message || 'Unknown error occurred'
-  }
-
   return (
     <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
       <h1>Enable Token Faucet</h1>
@@ -152,76 +143,33 @@ export default function ProposeFaucetPage() {
           </div>
 
           {isConnected ? (
-            <div>
-              {!isSuccess ? (
-                <div style={{ backgroundColor: '#e8f4fd', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem' }}>
-                  <h3 style={{ marginTop: 0 }}>Proposal Actions</h3>
-                  <p><strong>This proposal will execute 3 permission grants:</strong></p>
-                  <ol style={{ margin: '0.5rem 0', paddingLeft: '1.5rem' }}>
-                    <li><strong>MINT_PERMISSION:</strong> Allow faucet to mint governance tokens</li>
-                    <li><strong>CONFIG_PERMISSION:</strong> Allow DAO to configure faucet settings</li> 
-                    <li><strong>PAUSE_PERMISSION:</strong> Allow DAO to pause/unpause the faucet</li>
-                  </ol>
-                  <p style={{ fontSize: '14px', color: '#666', marginTop: '1rem' }}>
-                    After approval, the faucet will be fully operational for token claims.
-                  </p>
-                </div>
-              ) : null}
-
-              <div style={{ marginBottom: '2rem' }}>
-                <button
-                  style={{
-                    backgroundColor: isCorrectChain ? '#007bff' : '#ccc',
-                    color: 'white',
-                    border: 'none',
-                    padding: '12px 24px',
-                    fontSize: '16px',
-                    borderRadius: '6px',
-                    cursor: isCorrectChain ? 'pointer' : 'not-allowed',
-                    opacity: isPending ? 0.7 : 1
-                  }}
-                  onClick={createProposal}
-                  disabled={isPending || !isCorrectChain}
-                >
-                  {isPending ? 'Creating Proposal...' : 'Create Faucet Proposal'}
-                </button>
-                {!isCorrectChain && (
-                  <p style={{ color: '#666', fontSize: '14px', marginTop: '0.5rem' }}>
-                    Switch to {getChainName(params.chainId)} to enable proposal creation
-                  </p>
-                )}
-
-                {isSuccess && data && (
-                  <div style={{ backgroundColor: '#d4edda', padding: '1rem', borderRadius: '8px', marginTop: '1rem', border: '1px solid #c3e6cb' }}>
-                    <p style={{ margin: 0, color: '#155724' }}>
-                      <strong>✅ Proposal Created Successfully!</strong><br />
-                      Transaction Hash: <code>{data}</code>
-                    </p>
-                    <p style={{ fontSize: '14px', marginTop: '0.5rem' }}>
-                      View on <a 
-                        href={`https://app.aragon.org/dao/ethereum-sepolia/${params.dao}/proposals`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: '#007bff', textDecoration: 'underline' }}
-                      >
-                        Aragon App
-                      </a>
-                    </p>
-                  </div>
-                )}
+            <ProposalActionButton
+              onAction={createProposal}
+              isPending={isPending}
+              isSuccess={isSuccess}
+              data={data}
+              error={error}
+              isCorrectChain={isCorrectChain}
+              chainId={params.chainId}
+              buttonText="Create Faucet Proposal"
+              pendingText="Creating Proposal..."
+              daoAddress={params.dao}
+            >
+              <div style={{ backgroundColor: '#e8f4fd', padding: '1.5rem', borderRadius: '8px' }}>
+                <h3 style={{ marginTop: 0 }}>Proposal Actions</h3>
+                <p><strong>This proposal will execute 3 permission grants:</strong></p>
+                <ol style={{ margin: '0.5rem 0', paddingLeft: '1.5rem' }}>
+                  <li><strong>MINT_PERMISSION:</strong> Allow faucet to mint governance tokens</li>
+                  <li><strong>CONFIG_PERMISSION:</strong> Allow DAO to configure faucet settings</li> 
+                  <li><strong>PAUSE_PERMISSION:</strong> Allow DAO to pause/unpause the faucet</li>
+                </ol>
+                <p style={{ fontSize: '14px', color: '#666', marginTop: '1rem' }}>
+                  After approval, the faucet will be fully operational for token claims.
+                </p>
               </div>
-            </div>
+            </ProposalActionButton>
           ) : (
             <p style={{ color: '#666' }}>Please connect your wallet to continue</p>
-          )}
-          
-          {error && (
-            <div style={{ backgroundColor: '#f8d7da', padding: '1rem', borderRadius: '8px', marginTop: '1rem', border: '1px solid #f5c6cb' }}>
-              <p style={{ margin: 0, color: '#721c24' }}>
-                <strong>❌ Proposal Creation Failed</strong><br />
-                {getErrorMessage(error)}
-              </p>
-            </div>
           )}
         </div>
       ) : (

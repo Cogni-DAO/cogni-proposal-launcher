@@ -62,13 +62,19 @@ Server-side middleware validates deep link parameters before page load. Invalid 
 
 **Token Faucet (Sepolia):**
 ```
-https://app.cogni.org/join?chainId=11155111&faucet=0xFACADE0000000000000000000000000000000000&token=0xFDb18054A225E0Ca74BdD8d11BF35633e7893Fc0&amount=1&decimals=18
+https://proposal.cognidao.org/join?chainId=11155111&faucet=0xFACADE0000000000000000000000000000000000&token=0xFDb18054A225E0Ca74BdD8d11BF35633e7893Fc0&amount=1&decimals=18
 ```
 
 **Merge Change (Sepolia):**
 ```
-https://app.cogni.org/merge-change?dao=0xF480b40bF6d6C8765AA51b7C913cecF23c79E5C6&plugin=0xDD5bB976336145E8372C10CEbf2955c878a32308&signal=0x804CB616EAddD7B6956E67B1D8b2987207160dF7&chainId=11155111&repoUrl=https%3A//github.com/Cogni-DAO/preview-test-repo&pr=56&action=merge&target=change
+https://proposal.cognidao.org/merge-change?dao=0xF480b40bF6d6C8765AA51b7C913cecF23c79E5C6&plugin=0xDD5bB976336145E8372C10CEbf2955c878a32308&signal=0x804CB616EAddD7B6956E67B1D8b2987207160dF7&chainId=11155111&repoUrl=https%3A//github.com/Cogni-DAO/preview-test-repo&pr=56&action=merge&target=change
 ```
+
+**Propose Faucet (Sepolia):**
+```
+https://proposal.cognidao.org/propose-faucet?dao=0xF480b40bF6d6C8765AA51b7C913cecF23c79E5C6&plugin=0xDD5bB976336145E8372C10CEbf2955c878a32308&token=0xFDb18054A225E0Ca74BdD8d11BF35633e7893Fc0&faucet=0x3963A719e61BCF8E76fC0A92Cc7635A2134A0592&chainId=11155111
+```
+
 
 ## Architecture Overview
 
@@ -173,8 +179,3 @@ Pinned constants or per-link params from cogni-git-review.
 - Exact ABI and chain versioning are non-negotiable
 - Small surface area beats feature breadth
 - This repo stays public and app-only; shared logic moves to a core packages repo when needed
-
-
-
-
-https://app.cogni.org/join?chainId=11155111&faucet=0xFACADE0000000000000000000000000000000000&token=0xFDb18054A225E0Ca74BdD8d11BF35633e7893Fc0&amount=1&decimals=18

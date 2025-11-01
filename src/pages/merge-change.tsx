@@ -8,6 +8,7 @@ import { validate } from '../lib/deeplink'
 import { mergeSpec } from '../lib/deeplinkSpecs'
 import { getChainName } from '../lib/chainUtils'
 import NetworkSwitcher from '../components/NetworkSwitcher'
+import ProposalActionButton from '../components/ProposalActionButton'
 
 
 
@@ -104,66 +105,32 @@ export default function MergeChangePage() {
               <h3>Connected as: {address}</h3>
               <div style={{ marginTop: '2rem' }}>
                 <h3>Proposal Actions</h3>
-                <div style={{ backgroundColor: '#e8f4fd', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
-                  <p><strong>Action 1:</strong> Call CogniSignal.signal()</p>
-                  <p><strong>Target:</strong> {params.signal}</p>
-                  <p><strong>Parameters:</strong></p>
-                  <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem' }}>
-                    <li>vcs: &quot;github&quot;</li>
-                    <li>repoUrl: &quot;{decodeURIComponent(params.repoUrl)}&quot;</li>
-                    <li>action: &quot;{params.action}&quot;</li>
-                    <li>target: &quot;{params.target}&quot;</li>
-                    <li>resource: &quot;{params.pr}&quot;</li>
-                    <li>extra: 0x</li>
-                  </ul>
-                </div>
-                
-                <button 
-                  style={{
-                    backgroundColor: isCorrectChain && !isPending ? '#0070f3' : '#ccc',
-                    color: 'white',
-                    border: 'none',
-                    padding: '12px 24px',
-                    borderRadius: '8px',
-                    cursor: isCorrectChain && !isPending ? 'pointer' : 'not-allowed',
-                    fontSize: '16px'
-                  }}
-                  disabled={!isCorrectChain || isPending}
-                  onClick={createProposal}
+                <ProposalActionButton
+                  onAction={createProposal}
+                  isPending={isPending}
+                  isSuccess={isSuccess}
+                  data={data}
+                  error={error}
+                  isCorrectChain={isCorrectChain}
+                  chainId={params.chainId}
+                  buttonText="Create Proposal"
+                  pendingText="Creating Proposal..."
+                  daoAddress={params.dao}
                 >
-                  {isPending ? 'Creating Proposal...' : 'Create Proposal'}
-                </button>
-                {!isCorrectChain && (
-                  <p style={{ color: '#666', fontSize: '14px', marginTop: '0.5rem' }}>
-                    Switch to {getChainName(params.chainId)} to enable proposal creation
-                  </p>
-                )}
-
-                {error && (
-                  <div style={{ backgroundColor: '#f8d7da', color: '#721c24', padding: '1rem', borderRadius: '8px', marginTop: '1rem', border: '1px solid #f5c6cb' }}>
-                    <p><strong>❌ Transaction Failed</strong></p>
-                    <p style={{ fontSize: '14px', marginTop: '0.5rem' }}>{error.message}</p>
+                  <div style={{ backgroundColor: '#e8f4fd', padding: '1rem', borderRadius: '8px' }}>
+                    <p><strong>Action 1:</strong> Call CogniSignal.signal()</p>
+                    <p><strong>Target:</strong> {params.signal}</p>
+                    <p><strong>Parameters:</strong></p>
+                    <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem' }}>
+                      <li>vcs: &quot;github&quot;</li>
+                      <li>repoUrl: &quot;{decodeURIComponent(params.repoUrl)}&quot;</li>
+                      <li>action: &quot;{params.action}&quot;</li>
+                      <li>target: &quot;{params.target}&quot;</li>
+                      <li>resource: &quot;{params.pr}&quot;</li>
+                      <li>extra: 0x</li>
+                    </ul>
                   </div>
-                )}
-
-                {isSuccess && data && (
-                  <div style={{ backgroundColor: '#d4edda', color: '#155724', padding: '1rem', borderRadius: '8px', marginTop: '1rem', border: '1px solid #c3e6cb' }}>
-                    <p><strong>✅ Proposal Created Successfully!</strong></p>
-                    <p style={{ fontSize: '14px', marginTop: '0.5rem' }}>
-                      Transaction Hash: <code style={{ backgroundColor: 'rgba(0,0,0,0.1)', padding: '2px 4px', borderRadius: '4px' }}>{data}</code>
-                    </p>
-                    <p style={{ fontSize: '14px', marginTop: '0.5rem' }}>
-                      View on <a 
-                        href={`https://app.aragon.org/dao/ethereum-sepolia/${params.dao}/proposals`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: '#007bff', textDecoration: 'underline' }}
-                      >
-                        Aragon App
-                      </a>
-                    </p>
-                  </div>
-                )}
+                </ProposalActionButton>
               </div>
             </div>
           ) : (
