@@ -2,39 +2,51 @@
 
 ## Purpose
 
-Next.js pages that handle deep links from **cogni-git-review** and convert them into Aragon governance proposals.
+Next.js pages that handle validated deep links and convert them into blockchain transactions.
 
 ## Current Routes
 
-### `/merge-change.tsx` - Primary MVP Route
+### `/join.tsx` - Token Faucet Route
+**Triggered by:** Direct deep links for DAO membership  
+**URL Params:** `chainId`, `faucet`, `token`, `amount`, `decimals`  
+**Flow:** Parameter validation → Connect wallet → Network switching → Token claiming → Success status
+**Components:** Uses `NetworkSwitcher` for chain validation and switching
+**Contract:** Calls `FaucetMinter.claim()` after eligibility check
+
+### `/merge-change.tsx` - Primary MVP Route  
 **Triggered by:** cogni-git-review when PR merge fails due to permissions/checks  
-**URL Params:** `dao`, `plugin`, `signal`, `repo`, `pr`, `reason`, `targets`  
-**Flow:** Extract params → Connect wallet → Show proposal summary → Create proposal → Emit CogniSignal
+**URL Params:** `dao`, `plugin`, `signal`, `chainId`, `repoUrl`, `pr`, `action`, `target`  
+**Flow:** Parameter validation → Connect wallet → Network switching → Show proposal summary → Create proposal → Emit CogniSignal
+**Components:** Uses `NetworkSwitcher` and `ProposalActionButton` for consistent proposal creation UX
 
-**Next Steps:**
-1. Add contract address validation (`code.length > 0`)
-2. Implement `createProposal()` transaction with encoded `CogniSignal.emit()` calldata
-3. Add error handling and transaction status
-4. Show proposal link and tx hash on success
+### `/propose-faucet.tsx` - Faucet Permission Route
+**Triggered by:** Direct deep links to enable faucet functionality  
+**URL Params:** `dao`, `plugin`, `token`, `faucet`, `chainId`  
+**Flow:** Parameter validation → Connect wallet → Network switching → Show permission summary → Create proposal → Grant faucet permissions
+**Components:** Uses `NetworkSwitcher` and `ProposalActionButton` for consistent proposal creation UX
+**Contract:** Creates proposal with 3 permission grants:
+- MINT_PERMISSION: `grant(token, faucet, 0x154c0081...)` - Allows faucet to mint tokens
+- CONFIG_PERMISSION: `grant(faucet, dao, 0x4daa3c18...)` - Allows DAO to configure faucet  
+- PAUSE_PERMISSION: `grant(faucet, dao, 0xe1493260...)` - Allows DAO to pause faucet
 
-### Future Routes (V2)
-- `/grant.tsx` - Collaborator access grants
-- `/revoke.tsx` - Collaborator access revocation  
-- `/proposals/[id].tsx` - Read-only proposal viewer
+## Shared Architecture
 
-## Technical Requirements
+**Validation System:**
+- Server-side: `src/middleware.ts` is single source of truth - returns 400 for invalid deep links
+- Client-side: Pages trust middleware and parse `router.query` without re-validating
+- Type specs: `joinSpec`, `mergeSpec`, and `proposeFaucetSpec` from `src/lib/deeplinkSpecs.ts`
+- Loading state: Pages show "Loading..." until `router.isReady` to avoid hydration issues
 
-**Security:**
-- Validate all contract addresses have bytecode before enabling submit
-- Pin ABIs to specific deployed contract versions
-- Hard-reject unknown chainIds
-
-**UX:**
-- Clear parameter validation errors
-- Transaction status feedback
-- Links back to original PR and created proposal
+**Common Components:**
+- `NetworkSwitcher` - Handles wrong network detection and switching
+- `ProposalActionButton` - Standardized proposal creation workflow with success/error states
+- `ConnectButton` from RainbowKit - Wallet connection interface
 
 **Data Flow:**
-URL params → Validate → Connect wallet → Encode actions[] → createProposal() → CogniSignal.emit()
+Deep link → Middleware validation → Page render → Parameter validation → Wallet connect → Network check → Transaction
 
-Demo url: http://localhost:3001/merge-change?dao=0xF480b40bF6d6C8765AA51b7C913cecF23c79E5C6&plugin=0xDD5bB976336145E8372C10CEbf2955c878a32308&signal=0x804CB616EAddD7B6956E67B1D8b2987207160dF7&chainId=11155111&repoUrl=https%3A//github.com/Cogni-DAO/preview-test-repo&pr=56&action=merge&target=change
+**Error Handling:**
+- Invalid URLs: 400 response with plain text error
+- Missing params: Error UI with parameter requirements
+- Wrong network: Network switching prompt with chain names
+- Transaction errors: Formatted error messages with retry options

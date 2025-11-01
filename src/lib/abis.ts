@@ -45,3 +45,53 @@ export const TOKEN_VOTING_ABI = [
     "stateMutability": "nonpayable"
   }
 ] as const
+
+export const FAUCET_ABI = [
+  {
+    "type": "function",
+    "name": "claim",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function", 
+    "name": "hasClaimed",
+    "inputs": [{"name": "claimer", "type": "address", "internalType": "address"}],
+    "outputs": [{"type": "bool", "internalType": "bool"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "remainingTokens",
+    "inputs": [],
+    "outputs": [{"type": "uint256", "internalType": "uint256"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "Claimed",
+    "inputs": [
+      {"name": "claimer", "type": "address", "indexed": true, "internalType": "address"},
+      {"name": "amount", "type": "uint256", "indexed": false, "internalType": "uint256"}
+    ]
+  },
+  {
+    "type": "error",
+    "name": "AlreadyClaimed",
+    "inputs": [{"name": "claimer", "type": "address", "internalType": "address"}]
+  },
+  {
+    "type": "error", 
+    "name": "FaucetPaused",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "GlobalCapExceeded", 
+    "inputs": [
+      {"name": "requested", "type": "uint256", "internalType": "uint256"}, 
+      {"name": "available", "type": "uint256", "internalType": "uint256"}
+    ]
+  }
+] as const
