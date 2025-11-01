@@ -25,10 +25,43 @@ export default function MergeChangePage() {
   const requiredChainId = params ? parseInt(params.chainId) : 0
   const isCorrectChain = chainId === requiredChainId
 
+  const generateProposalTitle = () => {
+    if (!params?.repoUrl || !params?.action || !params?.pr) return 'Loading...'
+    const repoName = decodeURIComponent(params.repoUrl).split('/').pop()
+    return `${repoName}-${params.action}-PR#${params.pr}`
+  }
+
+  const generateProposalSummary = () => {
+    if (!params?.action || !params?.pr || !params?.repoUrl) return ''
+    const repoName = decodeURIComponent(params.repoUrl).split('/').pop()
+    return `${params.action?.charAt(0).toUpperCase()}${params.action?.slice(1)} PR #${params.pr} in ${repoName}`
+  }
+
   const createProposal = async () => {
     if (!params) return
 
     try {
+      // Step 0: Generate metadata URL for custom proposal title
+      const baseUrl = process.env.NODE_ENV === 'development' 
+        ? 'http://localhost:3000' 
+        : 'https://proposal.cognidao.org'
+      
+      const metadataUrl = `${baseUrl}/api/meta?repoUrl=${encodeURIComponent(params.repoUrl)}&pr=${params.pr}&action=${params.action}&target=${params.target}&v=1`
+      
+      let metadataBytes = '0x' // fallback to empty
+      try {
+        const metadataResponse = await fetch(metadataUrl)
+        if (metadataResponse.ok) {
+          // Encode the URL as bytes for Aragon to resolve
+          metadataBytes = `0x${Buffer.from(metadataUrl).toString('hex')}`
+          console.log('Using metadata URL:', metadataUrl)
+        } else {
+          console.warn('Metadata endpoint failed, using empty metadata')
+        }
+      } catch (e) {
+        console.warn('Failed to generate metadata, using empty metadata:', e)
+      }
+
       // Step 1: Encode the CogniSignal.signal() call
       const signalCallData = encodeFunctionData({
         abi: COGNI_SIGNAL_ABI,
@@ -56,7 +89,7 @@ export default function MergeChangePage() {
         abi: TOKEN_VOTING_ABI,
         functionName: 'createProposal',
         args: [
-          '0x',      // _metadata (empty)
+          metadataBytes as `0x${string}`, // _metadata (HTTPS URL or empty)
           actions,   // _actions
           BigInt(0), // _allowFailureMap (no failures allowed)
           BigInt(0), // _startDate (immediate)
@@ -104,6 +137,20 @@ export default function MergeChangePage() {
             <div>
               <h3>Connected as: {address}</h3>
               <div style={{ marginTop: '2rem' }}>
+                <h3>Proposal Preview</h3>
+                <div style={{ backgroundColor: '#d4edda', padding: '1rem', borderRadius: '8px', marginBottom: '1rem', border: '1px solid #c3e6cb' }}>
+                  <p><strong>📝 Proposal Title:</strong></p>
+                  <p style={{ fontSize: '16px', fontWeight: 'bold', color: '#155724' }}>
+                    {generateProposalTitle()}
+                  </p>
+                  <p style={{ fontSize: '14px', marginTop: '0.5rem', color: '#155724' }}>
+                    {generateProposalSummary()}
+                  </p>
+                  <p style={{ fontSize: '12px', marginTop: '0.5rem', color: '#666' }}>
+                    <em>Custom title will appear in Aragon App via metadata endpoint</em>
+                  </p>
+                </div>
+
                 <h3>Proposal Actions</h3>
                 <ProposalActionButton
                   onAction={createProposal}
