@@ -4,16 +4,17 @@ import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount, useChainId, useWriteContract } from 'wagmi'
 import { encodeFunctionData } from 'viem'
 import { TOKEN_VOTING_ABI } from '../lib/abis'
-import { validate } from '../lib/deeplink'
-import { proposeFaucetSpec } from '../lib/deeplinkSpecs'
+// Middleware handles validation - page just parses params
 import { getChainName } from '../lib/chainUtils'
 import NetworkSwitcher from '../components/NetworkSwitcher'
 import ProposalActionButton from '../components/ProposalActionButton'
 
-// Permission IDs - these match the contract constants
-const MINT_PERMISSION_ID = '0x154c00819833dac601ee5ddded6fda79d9d8b506b911b3dbd54cdb95fe6c3686' // keccak256("MINT_PERMISSION")
-const CONFIG_PERMISSION_ID = '0x4daa3c18dd72efc111b071bb0b0721e0eb60b1b2ab6e61f2ba6c7adc82cf90a0' // keccak256("CONFIG_PERMISSION")  
-const PAUSE_PERMISSION_ID = '0xe1493260c16eb51bf0e670b4b66b3e5ba8b0fa495b2f17b5d7a8bdcfb84b9fb8' // keccak256("PAUSE_PERMISSION")
+// Permission IDs - these match the deployed contract constants
+// To verify/update: Use `cast call <CONTRACT_ADDRESS> "PERMISSION_NAME_ID()"` on deployed contracts
+// Example: cast call --rpc-url <RPC_URL> 0xTokenAddress "MINT_PERMISSION_ID()"
+const MINT_PERMISSION_ID = '0xb737b436e6cc542520cb79ec04245c720c38eebfa56d9e2d99b043979db20e4c' // keccak256("MINT_PERMISSION")
+const CONFIG_PERMISSION_ID = '0x49e4aa25ce7d4eb5f024f9f6ebef20f963732b9e73790c8b2f196e01e90e8eb2' // keccak256("CONFIG_PERMISSION")  
+const PAUSE_PERMISSION_ID = '0x595f29b9b81abb2cfafd1caa277c849a6317ded4aa7672cd5e076bacaf78ba3e' // keccak256("PAUSE_PERMISSION")
 
 // PermissionManager.grant selector
 const PERMISSION_MANAGER_GRANT_SELECTOR = '0x0b18ff66' // grant(address,address,bytes32)
@@ -24,9 +25,15 @@ export default function ProposeFaucetPage() {
   const chainId = useChainId()
   const { writeContract, isPending, isSuccess, error, data } = useWriteContract()
   
-  const params = useMemo(() => (
-    router.isReady ? validate(router.query, proposeFaucetSpec) : null
-  ), [router.isReady, router.query])
+  // Middleware is single source of truth - just parse, don't validate
+  const one = (v: any) => Array.isArray(v) ? v[0] : v ?? ""
+  const params = useMemo(() => router.isReady ? {
+    dao: one(router.query.dao),
+    plugin: one(router.query.plugin), 
+    token: one(router.query.token),
+    faucet: one(router.query.faucet),
+    chainId: one(router.query.chainId),
+  } : null, [router.isReady, router.query])
 
   const requiredChainId = params ? parseInt(params.chainId) : 0
   const isCorrectChain = chainId === requiredChainId
@@ -173,20 +180,8 @@ export default function ProposeFaucetPage() {
           )}
         </div>
       ) : (
-        <div style={{ backgroundColor: '#f8f9fa', padding: '2rem', borderRadius: '8px' }}>
-          <h3>Invalid or Missing Parameters</h3>
-          <p>This page requires the following URL parameters:</p>
-          <ul>
-            <li>dao - DAO contract address</li>
-            <li>plugin - TokenVoting plugin address</li>
-            <li>token - GovernanceERC20 token address</li>
-            <li>faucet - FaucetMinter contract address</li>
-            <li>chainId - Network chain ID (e.g., 11155111 for Sepolia)</li>
-          </ul>
-          <p><strong>Example URL:</strong></p>
-          <code style={{ backgroundColor: '#f5f5f5', padding: '0.5rem', display: 'block', marginTop: '0.5rem' }}>
-            /propose-faucet?dao=0x123...&plugin=0x456...&token=0x789...&faucet=0xabc...&chainId=11155111
-          </code>
+        <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+          <p>Loading...</p>
         </div>
       )}
     </div>

@@ -32,9 +32,10 @@ Next.js pages that handle validated deep links and convert them into blockchain 
 ## Shared Architecture
 
 **Validation System:**
-- Server-side: `src/middleware.ts` returns 400 for invalid deep links
-- Client-side: `useMemo(() => validate(router.query, spec))` pattern
-- Type specs: `joinSpec` and `mergeSpec` from `src/lib/deeplinkSpecs.ts`
+- Server-side: `src/middleware.ts` is single source of truth - returns 400 for invalid deep links
+- Client-side: Pages trust middleware and parse `router.query` without re-validating
+- Type specs: `joinSpec`, `mergeSpec`, and `proposeFaucetSpec` from `src/lib/deeplinkSpecs.ts`
+- Loading state: Pages show "Loading..." until `router.isReady` to avoid hydration issues
 
 **Common Components:**
 - `NetworkSwitcher` - Handles wrong network detection and switching
