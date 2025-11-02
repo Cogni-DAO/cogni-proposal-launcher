@@ -13,6 +13,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  // Same-origin only: enforce Host header always
+  const host = req.headers.host
+  const allowed = [process.env.APP_HOST, `www.${process.env.APP_HOST}`]
+  if (!allowed.includes(host)) return res.status(403).json({ error: 'forbidden' })
+
   try {
     // Validate request body
     const metadata: MetadataUploadBody = req.body
@@ -66,10 +71,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
 
-    // Set CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    res.setHeader('Access-Control-Allow-Methods', 'POST')
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+    // No CORS: endpoint not callable cross-origin
 
     return res.status(200).json({ 
       cid,

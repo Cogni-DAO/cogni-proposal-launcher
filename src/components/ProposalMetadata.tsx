@@ -30,10 +30,12 @@ ${input.description}`
     }
     
     
-    // Upload via our API endpoint
+    // Upload via our API endpoint (server handles all authentication)
     const uploadResponse = await fetch('/api/ipfs', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 
+        'content-type': 'application/json'
+      },
       body: JSON.stringify(officialMetadata)
     })
 

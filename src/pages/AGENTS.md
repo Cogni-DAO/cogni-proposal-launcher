@@ -17,7 +17,18 @@ Next.js pages that handle validated deep links and convert them into blockchain 
 **Triggered by:** cogni-git-review when PR merge fails due to permissions/checks  
 **URL Params:** `dao`, `plugin`, `signal`, `chainId`, `repoUrl`, `pr`, `action`, `target`  
 **Flow:** Parameter validation → Connect wallet → Network switching → Show proposal summary → Create proposal → Emit CogniSignal
-**Components:** Uses `NetworkSwitcher` and `ProposalActionButton` for consistent proposal creation UX
+**Components:** Uses `NetworkSwitcher`, `ProposalActionButton`, and `ProposalMetadata` for consistent proposal creation UX
+
+**Metadata Generation:**
+- `generateProposalTitle()`: Creates format `{repoName}-{action}-PR#{pr}`
+- `generateProposalSummary()`: Creates format `{Action} PR #{pr} in {repoName}`  
+- `getPrUrl()`: Constructs GitHub PR URL `{repoUrl}/pull/{pr}`
+- URL helpers: `getDecodedRepoUrl()`, `getRepoName()` to avoid repeated decoding
+
+**IPFS Integration:**
+- Uses `createProposalMetadata()` from ProposalMetadata component
+- Title and summary go to IPFS, description contains just the PR URL
+- Metadata gets uploaded to IPFS, returns hex-encoded URI for Aragon proposal
 
 ### `/propose-faucet.tsx` - Faucet Permission Route
 **Triggered by:** Direct deep links to enable faucet functionality  
