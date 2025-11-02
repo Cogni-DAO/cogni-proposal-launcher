@@ -30,6 +30,8 @@ ${input.description}`
     }
     
     
+    // TODO: this seems like a terrible function format.
+
     // Upload via our API endpoint (server handles all authentication)
     const uploadResponse = await fetch('/api/ipfs', {
       method: 'POST',
@@ -58,7 +60,7 @@ ${input.description}`
         summary: input.summary 
       }
     }
-  } catch (e) {
+  } catch {
     return { 
       metadataBytes: '0x', 
       title: input.title, 
