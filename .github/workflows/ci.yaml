@@ -11,11 +11,7 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     env:
-      CI: true
       NEXT_TELEMETRY_DISABLED: 1
-      # Prevent wallet deps from breaking build: use benign defaults
-      NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: dummy
-      NEXT_PUBLIC_ALCHEMY_API_KEY: dummy
     steps:
       - uses: actions/checkout@v4
       - name: Install pnpm
