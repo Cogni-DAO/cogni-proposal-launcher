@@ -18,12 +18,12 @@ jobs:
       NEXT_PUBLIC_ALCHEMY_API_KEY: dummy
     steps:
       - uses: actions/checkout@v4
+      - name: Install pnpm
+        run: npm install -g pnpm
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-      - name: Install pnpm
-        run: npm install -g pnpm
 
       - name: Repository policy check
         run: |
