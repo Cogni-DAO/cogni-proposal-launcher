@@ -10,8 +10,6 @@ import { getChainName } from '../lib/chainUtils'
 import NetworkSwitcher from '../components/NetworkSwitcher'
 import ProposalActionButton from '../components/ProposalActionButton'
 
-
-
 export default function MergeChangePage() {
   const router = useRouter()
   const { address, isConnected } = useAccount()
@@ -187,21 +185,7 @@ export default function MergeChangePage() {
       ) : (
         <div style={{ color: '#red' }}>
           <h2>Missing Required Parameters</h2>
-          <p>This page requires the following URL parameters:</p>
-          <ul>
-            <li>dao - DAO contract address</li>
-            <li>plugin - Aragon voting plugin contract address</li>
-            <li>signal - CogniSignal contract address</li>
-            <li>chainId - Chain ID for validation</li>
-            <li>repoUrl - Full GitHub repository URL</li>
-            <li>pr - Pull request number</li>
-            <li>action - Action to take (e.g., &quot;merge&quot;)</li>
-            <li>target - Target type (e.g., &quot;change&quot;)</li>
-          </ul>
-          <p><strong>Example URL:</strong></p>
-          <code style={{ backgroundColor: '#f5f5f5', padding: '0.5rem', display: 'block', marginTop: '0.5rem' }}>
-            /merge-change?dao=0x123...&plugin=0x456...&signal=0x789...&chainId=11155111&repoUrl=https%3A//github.com/Cogni-DAO/preview-test-repo&pr=56&action=merge&target=change
-          </code>
+          <p>This page requires valid URL parameters. Please check the link and try again.</p>
         </div>
       )}
     </div>
