@@ -16,12 +16,9 @@ const MINT_PERMISSION_ID = '0xb737b436e6cc542520cb79ec04245c720c38eebfa56d9e2d99
 const CONFIG_PERMISSION_ID = '0x49e4aa25ce7d4eb5f024f9f6ebef20f963732b9e73790c8b2f196e01e90e8eb2' // keccak256("CONFIG_PERMISSION")  
 const PAUSE_PERMISSION_ID = '0x595f29b9b81abb2cfafd1caa277c849a6317ded4aa7672cd5e076bacaf78ba3e' // keccak256("PAUSE_PERMISSION")
 
-// PermissionManager.grant selector
-const PERMISSION_MANAGER_GRANT_SELECTOR = '0x0b18ff66' // grant(address,address,bytes32)
-
 export default function ProposeFaucetPage() {
   const router = useRouter()
-  const { address, isConnected } = useAccount()
+  const { isConnected } = useAccount()
   const chainId = useChainId()
   const { writeContract, isPending, isSuccess, error, data } = useWriteContract()
   
