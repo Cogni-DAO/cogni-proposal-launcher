@@ -10,17 +10,29 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    env:
+      CI: true
+      NEXT_TELEMETRY_DISABLED: 1
+      # Prevent wallet deps from breaking build: use benign defaults
+      NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: dummy
+      NEXT_PUBLIC_ALCHEMY_API_KEY: dummy
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          # Auto-caching is enabled when package.json has "packageManager"
-          # Otherwise: cache: 'npm'
+          cache: 'pnpm'
+      - name: Install pnpm
+        run: npm install -g pnpm
+
       - name: Repository policy check
         run: |
           npm install -g repolinter
           repolinter lint -c repolinter.json .
-      - run: npm ci
-      - run: npm run lint --if-present
-      - run: npm test
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
+      - run: pnpm run type-check
+      - run: pnpm run test:ci
+      - run: pnpm run build
