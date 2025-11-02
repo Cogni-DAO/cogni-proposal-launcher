@@ -132,3 +132,71 @@ await createProposal(metadataBytes, actions, ...)
 - Stateless, deterministic function
 - No database, files, or persistent storage
 - Safe to deploy and scale horizontally
+
+
+
+IPFS usage — final summary
+
+What: Store proposal metadata JSON on IPFS and pass stringToHex('ipfs://'+CID) as _metadata to createProposal.
+
+Why: Aragon UI renders title/summary only from IPFS URIs; HTTPS is ignored.
+
+Provider now: Infura IPFS via the standard Kubo HTTP API (/api/v0/add?pin=true&wrap-with-directory=false).
+
+Impl: One serverless POST /api/ipfs → uploads JSON → returns { cid }. No DB. Frontend then calls createProposal(bytes, actions, allowFailureMap).
+
+Security: INFURA_IPFS_PROJECT_ID and INFURA_IPFS_PROJECT_SECRET in env; validate payload and cap size.
+
+Determinism: Same JSON ⇒ same CID. Log sha256(JSON) and CID for audit.
+
+Fallback: If upload fails, send _metadata='0x' and warn (proposal will show TOKENVOTING-XX).
+
+Cost: Low; meets uptime needs now.
+
+Portability: Low lock-in. Infura speaks Kubo’s API; CIDs are provider-agnostic.
+
+Migration: Swap IPFS_API_URL to a self-hosted Kubo node, keep code and contracts unchanged; re-pin existing CIDs.
+
+## ProposalMetadata Schema Issue
+
+**Problem:** Only the description field displays in Aragon UI. Title and Summary do not :(
+
+**Investigation Results:**
+- Found osx script: `osx/packages/contracts/scripts/management-dao-proposal/generate-managing-dao-proposal-info.ts`
+- It strongly indicates the IPFS format should be: `{title, summary, description, resources}`
+- But even using this, only `description` field actually renders in Aragon App UI
+
+**Workaround:** 
+- Put all proposal information in `description` field only
+- Set `title`, `summary` to empty strings 
+
+**Current Implementation:**
+```typescript
+const ProposalMetadata = {
+  title: "",           // Not displayed  
+  summary: "",         // Not displayed
+  description: "MERGE PR #123 in repo\n\nRepository: ...", // ALL INFO HERE
+  resources: []
+}
+```
+
+Is Pinata aligned with Kubo open source??
+""Short, blunt answer:
+
+Neither Pinata “v3 scopes” nor the “legacy” endpoints are Kubo’s API. Kubo = /api/v0/add (multipart), open-source node. Pinata’s v3 is a proprietary uploads API + a Pinning Service API (PSA) for repinning; legacy (pinJSONToIPFS, pinFileToIPFS) are also proprietary. 
+docs.pinata.cloud
++2
+docs.pinata.cloud
++2
+
+If you want the closest migration path to self-hosted Kubo, design your server route to a single function putMetadata(json) -> cid and, for Pinata, prefer a multipart upload so swapping to /api/v0/add later is trivial. That means: use legacy pinFileToIPFS (multipart) over v3 JSON/TUS; or keep your own adapter that you can later point at Kubo’s /api/v0/add with the same multipart body. 
+docs.pinata.cloud
++1
+
+Recommendation:
+
+Implement a thin provider adapter now.
+
+For Pinata: call pinFileToIPFS (multipart) or wrap your JSON into a file and hit their v3 uploads endpoint, but keep your internal interface and multipart shape consistent with Kubo.
+
+When you self-host, switch the base URL to your Kubo node and call /api/v0/add with the same multipart request""

@@ -4,7 +4,6 @@ import { validate } from './lib/deeplink'
 import { joinSpec, mergeSpec, proposeFaucetSpec } from './lib/deeplinkSpecs'
 
 export function middleware(req: NextRequest) {
-  console.log('[MW]', req.nextUrl.pathname, req.nextUrl.search)
   
   const url = req.nextUrl
   const params = Object.fromEntries(url.searchParams)

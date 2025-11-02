@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount, useChainId, useWriteContract } from 'wagmi'
 import { encodeFunctionData } from 'viem'
+import { createProposalMetadata, ProposalPreview } from '../components/ProposalMetadata'
 import { COGNI_SIGNAL_ABI, TOKEN_VOTING_ABI } from '../lib/abis'
 import { validate } from '../lib/deeplink'
 import { mergeSpec } from '../lib/deeplinkSpecs'
@@ -23,42 +24,30 @@ export default function MergeChangePage() {
   const requiredChainId = params ? parseInt(params.chainId) : 0
   const isCorrectChain = chainId === requiredChainId
 
+  const getDecodedRepoUrl = () => params ? decodeURIComponent(params.repoUrl) : ''
+  const getRepoName = () => getDecodedRepoUrl().split('/').pop() || ''
+  const getPrUrl = () => `${getDecodedRepoUrl()}/pull/${params?.pr}`
+
   const generateProposalTitle = () => {
     if (!params?.repoUrl || !params?.action || !params?.pr) return 'Loading...'
-    const repoName = decodeURIComponent(params.repoUrl).split('/').pop()
-    return `${repoName}-${params.action}-PR#${params.pr}`
+    return `${getRepoName()}-${params.action}-PR#${params.pr}`
   }
 
   const generateProposalSummary = () => {
     if (!params?.action || !params?.pr || !params?.repoUrl) return ''
-    const repoName = decodeURIComponent(params.repoUrl).split('/').pop()
-    return `${params.action?.charAt(0).toUpperCase()}${params.action?.slice(1)} PR #${params.pr} in ${repoName}`
+    return `${params.action?.charAt(0).toUpperCase()}${params.action?.slice(1)} PR #${params.pr} in ${getRepoName()}`
   }
 
   const createProposal = async () => {
     if (!params) return
 
     try {
-      // Step 0: Generate metadata URL for custom proposal title
-      const baseUrl = process.env.NODE_ENV === 'development' 
-        ? 'http://localhost:3000' 
-        : 'https://proposal.cognidao.org'
-      
-      const metadataUrl = `${baseUrl}/api/meta?repoUrl=${encodeURIComponent(params.repoUrl)}&pr=${params.pr}&action=${params.action}&target=${params.target}&v=1`
-      
-      let metadataBytes = '0x' // fallback to empty
-      try {
-        const metadataResponse = await fetch(metadataUrl)
-        if (metadataResponse.ok) {
-          // Encode the URL as bytes for Aragon to resolve
-          metadataBytes = `0x${Buffer.from(metadataUrl).toString('hex')}`
-          console.log('Using metadata URL:', metadataUrl)
-        } else {
-          console.warn('Metadata endpoint failed, using empty metadata')
-        }
-      } catch (e) {
-        console.warn('Failed to generate metadata, using empty metadata:', e)
-      }
+      // Step 0: Create and upload metadata
+      const { metadataBytes } = await createProposalMetadata({
+        title: generateProposalTitle(),
+        summary: generateProposalSummary(),
+        description: getPrUrl()
+      })
 
       // Step 1: Encode the CogniSignal.signal() call
       const signalCallData = encodeFunctionData({
@@ -66,7 +55,7 @@ export default function MergeChangePage() {
         functionName: 'signal',
         args: [
           'github',                    // vcs
-          decodeURIComponent(params.repoUrl), // repoUrl (decode URL encoding)
+          getDecodedRepoUrl(), // repoUrl (decode URL encoding)
           params.action,               // action
           params.target,               // target
           params.pr,                   // resource (PR number)
@@ -120,7 +109,7 @@ export default function MergeChangePage() {
 
           <h2>Proposal Summary</h2>
           <div style={{ backgroundColor: '#f5f5f5', padding: '1rem', borderRadius: '8px', marginBottom: '2rem' }}>
-            <p><strong>Repository:</strong> {decodeURIComponent(params.repoUrl)}</p>
+            <p><strong>Repository:</strong> {getDecodedRepoUrl()}</p>
             <p><strong>Pull Request:</strong> #{params.pr}</p>
             <p><strong>Action:</strong> {params.action}</p>
             <p><strong>Target:</strong> {params.target}</p>
@@ -136,18 +125,10 @@ export default function MergeChangePage() {
               <h3>Connected as: {address}</h3>
               <div style={{ marginTop: '2rem' }}>
                 <h3>Proposal Preview</h3>
-                <div style={{ backgroundColor: '#d4edda', padding: '1rem', borderRadius: '8px', marginBottom: '1rem', border: '1px solid #c3e6cb' }}>
-                  <p><strong>📝 Proposal Title:</strong></p>
-                  <p style={{ fontSize: '16px', fontWeight: 'bold', color: '#155724' }}>
-                    {generateProposalTitle()}
-                  </p>
-                  <p style={{ fontSize: '14px', marginTop: '0.5rem', color: '#155724' }}>
-                    {generateProposalSummary()}
-                  </p>
-                  <p style={{ fontSize: '12px', marginTop: '0.5rem', color: '#666' }}>
-                    <em>Custom title will appear in Aragon App via metadata endpoint</em>
-                  </p>
-                </div>
+                <ProposalPreview 
+                  title={generateProposalTitle()}
+                  summary={generateProposalSummary()}
+                />
 
                 <h3>Proposal Actions</h3>
                 <ProposalActionButton
@@ -168,7 +149,7 @@ export default function MergeChangePage() {
                     <p><strong>Parameters:</strong></p>
                     <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem' }}>
                       <li>vcs: &quot;github&quot;</li>
-                      <li>repoUrl: &quot;{decodeURIComponent(params.repoUrl)}&quot;</li>
+                      <li>repoUrl: &quot;{getDecodedRepoUrl()}&quot;</li>
                       <li>action: &quot;{params.action}&quot;</li>
                       <li>target: &quot;{params.target}&quot;</li>
                       <li>resource: &quot;{params.pr}&quot;</li>
