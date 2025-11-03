@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router'
 import { useMemo } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
-import { useAccount, useChainId, useWriteContract } from 'wagmi'
+import { useAccount, useChainId, useWriteContract, usePublicClient } from 'wagmi'
 import { encodeFunctionData } from 'viem'
 import { TOKEN_VOTING_ABI } from '../lib/abis'
 // Middleware handles validation - page just parses params
@@ -9,18 +9,13 @@ import { getChainName } from '../lib/chainUtils'
 import NetworkSwitcher from '../components/NetworkSwitcher'
 import ProposalActionButton from '../components/ProposalActionButton'
 
-// Permission IDs - these match the deployed contract constants
-// To verify/update: Use `cast call <CONTRACT_ADDRESS> "PERMISSION_NAME_ID()"` on deployed contracts
-// Example: cast call --rpc-url <RPC_URL> 0xTokenAddress "MINT_PERMISSION_ID()"
-const MINT_PERMISSION_ID = '0xb737b436e6cc542520cb79ec04245c720c38eebfa56d9e2d99b043979db20e4c' // keccak256("MINT_PERMISSION")
-const CONFIG_PERMISSION_ID = '0x49e4aa25ce7d4eb5f024f9f6ebef20f963732b9e73790c8b2f196e01e90e8eb2' // keccak256("CONFIG_PERMISSION")  
-const PAUSE_PERMISSION_ID = '0x595f29b9b81abb2cfafd1caa277c849a6317ded4aa7672cd5e076bacaf78ba3e' // keccak256("PAUSE_PERMISSION")
 
 export default function ProposeFaucetPage() {
   const router = useRouter()
-  const { isConnected } = useAccount()
+  const { address, isConnected } = useAccount()
   const chainId = useChainId()
   const { writeContract, isPending, isSuccess, error, data } = useWriteContract()
+  const client = usePublicClient()
   
   // Middleware is single source of truth - just parse, don't validate
   const one = (v: any) => Array.isArray(v) ? v[0] : v ?? ""
@@ -36,81 +31,46 @@ export default function ProposeFaucetPage() {
   const isCorrectChain = chainId === requiredChainId
 
   const createProposal = async () => {
-    if (!params) return
+    // Hard guards - return early if preconditions not met
+    if (!params || !client || !address || !isCorrectChain) return
 
     try {
-      // Build the three permission grant actions
+      // Build single action: Call token.grantMintRole(faucet)
       const actions = [
-        // Action 1: Grant MINT_PERMISSION to faucet (on token contract)
         {
-          to: params.dao as `0x${string}`,
-          value: BigInt(0),
+          to: params.token as `0x${string}`,
+          value: 0n,
           data: encodeFunctionData({
-            abi: [{ 
-              name: 'grant',
-              type: 'function',
-              inputs: [
-                { name: 'where', type: 'address' },
-                { name: 'who', type: 'address' },
-                { name: 'permissionId', type: 'bytes32' }
-              ]
-            }],
-            functionName: 'grant',
-            args: [params.token, params.faucet, MINT_PERMISSION_ID]
-          })
+            abi: [{ name: 'grantMintRole', type: 'function', inputs: [{ name: 'account', type: 'address' }] }],
+            functionName: 'grantMintRole',
+            args: [params.faucet as `0x${string}`],
+          }),
         },
-        // Action 2: Grant CONFIG_PERMISSION to DAO (on faucet contract)  
-        {
-          to: params.dao as `0x${string}`,
-          value: BigInt(0),
-          data: encodeFunctionData({
-            abi: [{ 
-              name: 'grant',
-              type: 'function',
-              inputs: [
-                { name: 'where', type: 'address' },
-                { name: 'who', type: 'address' },
-                { name: 'permissionId', type: 'bytes32' }
-              ]
-            }],
-            functionName: 'grant',
-            args: [params.faucet, params.dao, CONFIG_PERMISSION_ID]
-          })
-        },
-        // Action 3: Grant PAUSE_PERMISSION to DAO (on faucet contract)
-        {
-          to: params.dao as `0x${string}`,
-          value: BigInt(0),
-          data: encodeFunctionData({
-            abi: [{ 
-              name: 'grant',
-              type: 'function',
-              inputs: [
-                { name: 'where', type: 'address' },
-                { name: 'who', type: 'address' },
-                { name: 'permissionId', type: 'bytes32' }
-              ]
-            }],
-            functionName: 'grant',
-            args: [params.faucet, params.dao, PAUSE_PERMISSION_ID]
-          })
-        }
       ]
 
-      // Create proposal using TokenVoting plugin
+      // Use real timestamps to avoid estimator fallback
+      const now = Math.floor(Date.now() / 1000)
+      const startDate = BigInt(now + 60)          // starts in 1 min
+      const endDate   = BigInt(now + 3 * 24 * 3600) // ends in ~3 days
+
+      // Estimate and cap gas when calling createProposal
+      const est = await client.estimateContractGas({
+        address: params.plugin as `0x${string}`,
+        abi: TOKEN_VOTING_ABI,
+        functionName: 'createProposal',
+        args: ['0x', actions, 0n, startDate, endDate, 0, false],
+        account: address as `0x${string}`, // Critical to avoid null-sender simulation
+      })
+      const gas = est * 13n / 10n                // +30%
+      const gasLimit = gas > 900_000n ? 900_000n : gas
+
       await writeContract({
         address: params.plugin as `0x${string}`,
         abi: TOKEN_VOTING_ABI,
         functionName: 'createProposal',
-        args: [
-          '0x',        // metadata (empty like merge-change)
-          actions,     // actions[]
-          BigInt(0),   // allowFailureMap
-          BigInt(0),   // startDate (immediate)
-          BigInt(0),   // endDate (plugin default)
-          0,           // VoteOption.None
-          false        // tryEarlyExecution
-        ],
+        args: ['0x', actions, 0n, startDate, endDate, 0, false],
+        gas: gasLimit,
+        account: address as `0x${string}`,
       })
 
     } catch (err) {
@@ -160,15 +120,10 @@ export default function ProposeFaucetPage() {
               daoAddress={params.dao}
             >
               <div style={{ backgroundColor: '#e8f4fd', padding: '1.5rem', borderRadius: '8px' }}>
-                <h3 style={{ marginTop: 0 }}>Proposal Actions</h3>
-                <p><strong>This proposal will execute 3 permission grants:</strong></p>
-                <ol style={{ margin: '0.5rem 0', paddingLeft: '1.5rem' }}>
-                  <li><strong>MINT_PERMISSION:</strong> Allow faucet to mint governance tokens</li>
-                  <li><strong>CONFIG_PERMISSION:</strong> Allow DAO to configure faucet settings</li> 
-                  <li><strong>PAUSE_PERMISSION:</strong> Allow DAO to pause/unpause the faucet</li>
-                </ol>
+                <h3 style={{ marginTop: 0 }}>Proposal Action</h3>
+                <p><strong>This proposal will call token.grantMintRole(faucet) to allow the faucet to mint governance tokens.</strong></p>
                 <p style={{ fontSize: '14px', color: '#666', marginTop: '1rem' }}>
-                  After approval, the faucet will be fully operational for token claims.
+                  After approval, users will be able to claim tokens from the faucet.
                 </p>
               </div>
             </ProposalActionButton>
