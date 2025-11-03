@@ -3,14 +3,13 @@ import { useMemo } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount, useChainId, useWriteContract } from 'wagmi'
 import { encodeFunctionData } from 'viem'
+import { createProposalMetadata, ProposalPreview } from '../components/ProposalMetadata'
 import { COGNI_SIGNAL_ABI, TOKEN_VOTING_ABI } from '../lib/abis'
 import { validate } from '../lib/deeplink'
 import { mergeSpec } from '../lib/deeplinkSpecs'
 import { getChainName } from '../lib/chainUtils'
 import NetworkSwitcher from '../components/NetworkSwitcher'
 import ProposalActionButton from '../components/ProposalActionButton'
-
-
 
 export default function MergeChangePage() {
   const router = useRouter()
@@ -25,17 +24,38 @@ export default function MergeChangePage() {
   const requiredChainId = params ? parseInt(params.chainId) : 0
   const isCorrectChain = chainId === requiredChainId
 
+  const getDecodedRepoUrl = () => params ? decodeURIComponent(params.repoUrl) : ''
+  const getRepoName = () => getDecodedRepoUrl().split('/').pop() || ''
+  const getPrUrl = () => `${getDecodedRepoUrl()}/pull/${params?.pr}`
+
+  const generateProposalTitle = () => {
+    if (!params?.repoUrl || !params?.action || !params?.pr) return 'Loading...'
+    return `${getRepoName()}-${params.action}-PR#${params.pr}`
+  }
+
+  const generateProposalSummary = () => {
+    if (!params?.action || !params?.pr || !params?.repoUrl) return ''
+    return `${params.action?.charAt(0).toUpperCase()}${params.action?.slice(1)} PR #${params.pr} in ${getRepoName()}`
+  }
+
   const createProposal = async () => {
     if (!params) return
 
     try {
+      // Step 0: Create and upload metadata
+      const { metadataBytes } = await createProposalMetadata({
+        title: generateProposalTitle(),
+        summary: generateProposalSummary(),
+        description: getPrUrl()
+      })
+
       // Step 1: Encode the CogniSignal.signal() call
       const signalCallData = encodeFunctionData({
         abi: COGNI_SIGNAL_ABI,
         functionName: 'signal',
         args: [
           'github',                    // vcs
-          decodeURIComponent(params.repoUrl), // repoUrl (decode URL encoding)
+          getDecodedRepoUrl(), // repoUrl (decode URL encoding)
           params.action,               // action
           params.target,               // target
           params.pr,                   // resource (PR number)
@@ -56,7 +76,7 @@ export default function MergeChangePage() {
         abi: TOKEN_VOTING_ABI,
         functionName: 'createProposal',
         args: [
-          '0x',      // _metadata (empty)
+          metadataBytes as `0x${string}`, // _metadata (HTTPS URL or empty)
           actions,   // _actions
           BigInt(0), // _allowFailureMap (no failures allowed)
           BigInt(0), // _startDate (immediate)
@@ -89,7 +109,7 @@ export default function MergeChangePage() {
 
           <h2>Proposal Summary</h2>
           <div style={{ backgroundColor: '#f5f5f5', padding: '1rem', borderRadius: '8px', marginBottom: '2rem' }}>
-            <p><strong>Repository:</strong> {decodeURIComponent(params.repoUrl)}</p>
+            <p><strong>Repository:</strong> {getDecodedRepoUrl()}</p>
             <p><strong>Pull Request:</strong> #{params.pr}</p>
             <p><strong>Action:</strong> {params.action}</p>
             <p><strong>Target:</strong> {params.target}</p>
@@ -104,6 +124,12 @@ export default function MergeChangePage() {
             <div>
               <h3>Connected as: {address}</h3>
               <div style={{ marginTop: '2rem' }}>
+                <h3>Proposal Preview</h3>
+                <ProposalPreview 
+                  title={generateProposalTitle()}
+                  summary={generateProposalSummary()}
+                />
+
                 <h3>Proposal Actions</h3>
                 <ProposalActionButton
                   onAction={createProposal}
@@ -123,7 +149,7 @@ export default function MergeChangePage() {
                     <p><strong>Parameters:</strong></p>
                     <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem' }}>
                       <li>vcs: &quot;github&quot;</li>
-                      <li>repoUrl: &quot;{decodeURIComponent(params.repoUrl)}&quot;</li>
+                      <li>repoUrl: &quot;{getDecodedRepoUrl()}&quot;</li>
                       <li>action: &quot;{params.action}&quot;</li>
                       <li>target: &quot;{params.target}&quot;</li>
                       <li>resource: &quot;{params.pr}&quot;</li>
@@ -140,21 +166,7 @@ export default function MergeChangePage() {
       ) : (
         <div style={{ color: '#red' }}>
           <h2>Missing Required Parameters</h2>
-          <p>This page requires the following URL parameters:</p>
-          <ul>
-            <li>dao - DAO contract address</li>
-            <li>plugin - Aragon voting plugin contract address</li>
-            <li>signal - CogniSignal contract address</li>
-            <li>chainId - Chain ID for validation</li>
-            <li>repoUrl - Full GitHub repository URL</li>
-            <li>pr - Pull request number</li>
-            <li>action - Action to take (e.g., &quot;merge&quot;)</li>
-            <li>target - Target type (e.g., &quot;change&quot;)</li>
-          </ul>
-          <p><strong>Example URL:</strong></p>
-          <code style={{ backgroundColor: '#f5f5f5', padding: '0.5rem', display: 'block', marginTop: '0.5rem' }}>
-            /merge-change?dao=0x123...&plugin=0x456...&signal=0x789...&chainId=11155111&repoUrl=https%3A//github.com/Cogni-DAO/preview-test-repo&pr=56&action=merge&target=change
-          </code>
+          <p>This page requires valid URL parameters. Please check the link and try again.</p>
         </div>
       )}
     </div>

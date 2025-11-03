@@ -12,6 +12,37 @@ Reusable React components that handle common UI patterns across proposal creatio
 **Functionality:** Detects network mismatches and provides switching UI with chain names  
 **Integration:** Consumes `getChainName()` utility for human-readable network labels
 
+### `ProposalMetadata.tsx`
+**Usage:** All pages that create Aragon proposals with custom metadata  
+**Core Function:** `createProposalMetadata(input: ProposalMetadataInput): Promise<ProposalMetadataResult>`  
+**Input Interface:**
+```typescript
+{
+  title: string        // Short proposal identifier
+  summary: string      // One-line description  
+  description: string  // Detailed content (often just PR URL)
+  resources?: Array<{name: string, url: string}>
+}
+```
+
+**Output:** 
+```typescript
+{
+  metadataBytes: string  // Hex-encoded IPFS URI for Aragon
+  title: string         // Echo of input title
+  summary: string       // Echo of input summary
+}
+```
+
+**IPFS Integration:**
+- Calls `/api/ipfs` endpoint with metadata JSON
+- Handles upload failures gracefully (returns `'0x'` for metadataBytes)
+- Implements Aragon UI workaround: puts title + summary + description all in the `description` field
+
+**UI Component:** `ProposalPreview({ title, summary })`  
+- Shows green preview box with proposal title and summary
+- Explains that content will appear in description field due to Aragon UI limitations
+
 ### `ProposalActionButton.tsx`
 **Usage:** Pages that create Aragon proposals (`merge-change`, `propose-faucet`)  
 **Props:** Transaction state, chain validation, custom content, button text, DAO address  
