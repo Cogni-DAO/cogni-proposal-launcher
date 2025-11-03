@@ -35,10 +35,9 @@ Next.js pages that handle validated deep links and convert them into blockchain 
 **URL Params:** `dao`, `plugin`, `token`, `faucet`, `chainId`  
 **Flow:** Parameter validation → Connect wallet → Network switching → Show permission summary → Create proposal → Grant faucet permissions
 **Components:** Uses `NetworkSwitcher` and `ProposalActionButton` for consistent proposal creation UX
-**Contract:** Creates proposal with 3 permission grants:
-- MINT_PERMISSION: `grant(token, faucet, 0x154c0081...)` - Allows faucet to mint tokens
-- CONFIG_PERMISSION: `grant(faucet, dao, 0x4daa3c18...)` - Allows DAO to configure faucet  
-- PAUSE_PERMISSION: `grant(faucet, dao, 0xe1493260...)` - Allows DAO to pause faucet
+**Contract:** Creates single-action proposal calling `token.grantMintRole(faucet)` to enable faucet minting
+**Validation:** Guards against missing address, client, or wrong chain before contract calls
+**Gas Management:** Estimates gas with 30% padding, caps at 900k to prevent failures
 
 ## Shared Architecture
 
