@@ -86,14 +86,16 @@ Deep link → Middleware validation → Page render → Wallet connect → Trans
 - `src/lib/deeplinkSpecs.ts` - Route-specific validation rules  
 - `src/lib/chainUtils.ts` - Chain name resolution utilities
 - `src/lib/contractUtils.ts` - Contract call validation, gas estimation, and timestamp utilities
-- `src/components/NetworkSwitcher.tsx` - Reusable network switching UI
+- `src/lib/utils.ts` - Tailwind class merging utilities from cogni-site
+- `src/components/NetworkSwitcher.tsx` - Network switching UI with dark theme styling
+- `src/components/ui/` - Reusable UI components (Button, Card, Alert) copied from cogni-site
 - `src/middleware.ts` - Server-side parameter validation (returns 400 for invalid links)
 
 **External Integration:**
 - **cogni-git-review** - Generates deep links on PR failures
 - **cogni-signal-evm-contracts** - DAO and signal contract deployments  
 - **cogni-git-admin** - Consumes on-chain signals to execute Git operations
-- **cogni-site** - Main site navigation
+- **cogni-site** - Main site navigation and source of UI design system
 
 ## Interfaces
 

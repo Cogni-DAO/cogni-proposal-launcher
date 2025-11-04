@@ -31,6 +31,11 @@ Core utilities and validation functions shared across proposal creation pages an
 ### `abis.ts` - Contract Interfaces
 **Exports:** `COGNI_SIGNAL_ABI`, `TOKEN_VOTING_ABI`, `FAUCET_ABI` for contract interactions
 
+### `utils.ts` - UI Utilities
+**Source:** cogni-site utilities  
+**Export:** `cn(...inputs: ClassValue[])` - Tailwind class name merger using clsx and tailwind-merge  
+**Usage:** UI components for conditional class application and conflict resolution  
+
 ## Integration Pattern
 
 Utilities follow consistent import/usage pattern:

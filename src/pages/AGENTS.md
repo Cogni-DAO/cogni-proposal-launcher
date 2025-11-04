@@ -10,14 +10,16 @@ Next.js pages that handle validated deep links and convert them into blockchain 
 **Triggered by:** Direct deep links for DAO membership  
 **URL Params:** `chainId`, `faucet`, `token`, `amount`, `decimals`  
 **Flow:** Parameter validation → Connect wallet → Network switching → Token claiming → Success status
-**Components:** Uses `NetworkSwitcher` for chain validation and switching
+**Components:** Uses `NetworkSwitcher` and `ui/Card`, `ui/Button`, `ui/Alert` from cogni-site design system  
+**Styling:** Modern card-based layout with dark theme, responsive design  
 **Contract:** Calls `FaucetMinter.claim()` after eligibility check
 
 ### `/merge-change.tsx` - Primary MVP Route  
 **Triggered by:** cogni-git-review when PR merge fails due to permissions/checks  
 **URL Params:** `dao`, `plugin`, `signal`, `chainId`, `repoUrl`, `pr`, `action`, `target`  
 **Flow:** Parameter validation → Connect wallet → Network switching → Show proposal summary → Create proposal → Emit CogniSignal
-**Components:** Uses `NetworkSwitcher`, `ProposalActionButton`, and `ProposalMetadata` for consistent proposal creation UX
+**Components:** Uses `NetworkSwitcher`, `ProposalActionButton`, `ProposalMetadata`, and `ui/Card`, `ui/Alert` from cogni-site design system  
+**Styling:** Card-based layout with dark theme, responsive grid for contract addresses
 
 **Metadata Generation:**
 - `generateProposalTitle()`: Creates format `{repoName}-{action}-PR#{pr}`

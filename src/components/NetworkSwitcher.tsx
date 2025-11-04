@@ -20,19 +20,13 @@ export default function NetworkSwitcher({
 
   if (!isCorrectChain) {
     return (
-      <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid #ffeaa7' }}>
-        <p><strong>⚠️ Wrong Network</strong></p>
-        <p>You&apos;re connected to {getChainNameById(currentChainId)} but this requires {getChainName(requiredChainId.toString())}.</p>
+      <div className="bg-background border-2 border-yellow-500 rounded-lg p-4 mb-6">
+        <p className="text-foreground font-semibold mb-2">⚠️ Wrong Network</p>
+        <p className="text-muted-foreground mb-4">
+          You&apos;re connected to {getChainNameById(currentChainId)} but this requires {getChainName(requiredChainId.toString())}.
+        </p>
         <button 
-          style={{
-            backgroundColor: '#f39c12',
-            color: 'white',
-            border: 'none',
-            padding: '8px 16px',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            marginTop: '0.5rem'
-          }}
+          className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium px-4 py-2 rounded-md transition-colors"
           onClick={() => switchChain?.({ chainId: requiredChainId })}
         >
           Switch to {getChainName(requiredChainId.toString())}
@@ -42,7 +36,7 @@ export default function NetworkSwitcher({
   }
 
   return (
-    <p style={{ color: '#28a745', marginBottom: '2rem' }}>
+    <p className="text-green-400 mb-6 font-medium">
       ✅ Connected to {getChainName(requiredChainId.toString())}
     </p>
   )

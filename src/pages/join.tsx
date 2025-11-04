@@ -7,6 +7,9 @@ import { validate } from '../lib/deeplink'
 import { joinSpec } from '../lib/deeplinkSpecs'
 import { getChainName } from '../lib/chainUtils'
 import NetworkSwitcher from '../components/NetworkSwitcher'
+import { Button } from '../components/ui/button'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card'
+import { Alert, AlertTitle, AlertDescription } from '../components/ui/alert'
 
 
 
@@ -91,104 +94,130 @@ export default function JoinPage() {
   }
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-      <h1>Join the DAO</h1>
-      <p>Claim your governance tokens to participate in DAO decisions.</p>
-      
-      <div style={{ marginBottom: '2rem' }}>
-        <ConnectButton />
-      </div>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto py-8 px-4 max-w-4xl">
+        <div className="mb-8 text-center">
+          <h1 className="text-4xl font-bold text-foreground mb-4">Join the DAO</h1>
+          <p className="text-lg text-muted-foreground">Claim your governance tokens to participate in DAO decisions.</p>
+        </div>
+        
+        <div className="mb-8 flex justify-center">
+          <ConnectButton />
+        </div>
 
-      {params ? (
-        <div>
-          <NetworkSwitcher
-            isConnected={isConnected}
-            currentChainId={chainId}
-            requiredChainId={requiredChainId}
-            isCorrectChain={isCorrectChain}
-          />
+        {params ? (
+          <div className="space-y-6">
+            <NetworkSwitcher
+              isConnected={isConnected}
+              currentChainId={chainId}
+              requiredChainId={requiredChainId}
+              isCorrectChain={isCorrectChain}
+            />
 
-          <div style={{ backgroundColor: '#e8f4fd', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem' }}>
-            <h3 style={{ marginTop: 0 }}>Token Claim Details</h3>
-            <p><strong>Amount:</strong> {formatTokenAmount(params.amount, params.decimals)} tokens</p>
-            <p><strong>Token Contract:</strong> {params.token}</p>
-            <p><strong>Faucet Contract:</strong> {params.faucet}</p>
-            <p><strong>Network:</strong> {getChainName(params.chainId)} (Chain ID: {params.chainId})</p>
-            {remainingTokens !== undefined && (
-              <p><strong>Remaining in Faucet:</strong> {remainingTokens.toString()} tokens</p>
+            <Card>
+              <CardHeader>
+                <CardTitle>Token Claim Details</CardTitle>
+                <CardDescription>Review the details of your token claim below</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Amount</p>
+                    <p className="text-lg font-semibold">{formatTokenAmount(params.amount, params.decimals)} tokens</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Network</p>
+                    <p className="text-lg font-semibold">{getChainName(params.chainId)} (Chain ID: {params.chainId})</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Token Contract</p>
+                    <p className="text-sm font-mono break-all">{params.token}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Faucet Contract</p>
+                    <p className="text-sm font-mono break-all">{params.faucet}</p>
+                  </div>
+                  {remainingTokens !== undefined && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Remaining in Faucet</p>
+                      <p className="text-lg font-semibold">{remainingTokens.toString()} tokens</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {isConnected && isCorrectChain && (
+              <div>
+                {hasClaimed ? (
+                  <Alert variant="destructive">
+                    <AlertTitle>Already Claimed</AlertTitle>
+                    <AlertDescription>
+                      You have already claimed your tokens from this faucet.
+                    </AlertDescription>
+                  </Alert>
+                ) : isSuccess ? (
+                  <Alert variant="success">
+                    <AlertTitle>Claim Successful!</AlertTitle>
+                    <AlertDescription>
+                      You have successfully claimed {formatTokenAmount(params.amount, params.decimals)} tokens.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <div className="flex justify-center">
+                    <Button 
+                      onClick={executeClaim}
+                      disabled={isPending}
+                      size="lg"
+                      className="w-full md:w-auto"
+                    >
+                      {isPending ? 'Claiming...' : `Claim ${formatTokenAmount(params.amount, params.decimals)} Tokens`}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          
+            {error && (
+              <Alert variant="destructive">
+                <AlertTitle>Claim Failed</AlertTitle>
+                <AlertDescription>
+                  {getErrorMessage(error)}
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {!isConnected && (
+              <div className="text-center text-muted-foreground">
+                <p>Please connect your wallet to continue</p>
+              </div>
             )}
           </div>
-
-          {isConnected && isCorrectChain && (
-            <div>
-              {hasClaimed ? (
-                <div style={{ backgroundColor: '#f8d7da', padding: '1rem', borderRadius: '8px', border: '1px solid #f5c6cb' }}>
-                  <p style={{ margin: 0, color: '#721c24' }}>
-                    <strong>✋ Already Claimed</strong><br />
-                    You have already claimed your tokens from this faucet.
-                  </p>
-                </div>
-              ) : isSuccess ? (
-                <div style={{ backgroundColor: '#d4edda', padding: '1rem', borderRadius: '8px', border: '1px solid #c3e6cb' }}>
-                  <p style={{ margin: 0, color: '#155724' }}>
-                    <strong>🎉 Claim Successful!</strong><br />
-                    You have successfully claimed {formatTokenAmount(params.amount, params.decimals)} tokens.
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  <button 
-                    style={{
-                      backgroundColor: isPending ? '#ccc' : '#28a745',
-                      color: 'white',
-                      border: 'none',
-                      padding: '12px 24px',
-                      borderRadius: '8px',
-                      cursor: isPending ? 'not-allowed' : 'pointer',
-                      fontSize: '16px',
-                      fontWeight: 'bold'
-                    }}
-                    onClick={executeClaim}
-                    disabled={isPending}
-                  >
-                    {isPending ? 'Claiming...' : `Claim ${formatTokenAmount(params.amount, params.decimals)} Tokens`}
-                  </button>
-                </div>
-              )}
-            </div>
-
-          )}
-          
-          {error && (
-            <div style={{ backgroundColor: '#f8d7da', padding: '1rem', borderRadius: '8px', marginTop: '1rem', border: '1px solid #f5c6cb' }}>
-              <p style={{ margin: 0, color: '#721c24' }}>
-                <strong>❌ Claim Failed</strong><br />
-                {getErrorMessage(error)}
-              </p>
-            </div>
-          )}
-          
-          {!isConnected && (
-            <p style={{ color: '#666' }}>Please connect your wallet to continue</p>
-          )}
-        </div>
-      ) : (
-        <div style={{ backgroundColor: '#f8f9fa', padding: '2rem', borderRadius: '8px' }}>
-          <h3>Invalid or Missing Parameters</h3>
-          <p>This page requires the following URL parameters:</p>
-          <ul>
-            <li>chainId - Network chain ID (e.g., 11155111 for Sepolia)</li>
-            <li>faucet - FaucetMinter contract address</li>
-            <li>token - GovernanceERC20 token address</li>
-            <li>amount - Tokens per claim (display value)</li>
-            <li>decimals - Token decimals for display</li>
-          </ul>
-          <p><strong>Example URL:</strong></p>
-          <code style={{ backgroundColor: '#f5f5f5', padding: '0.5rem', display: 'block', marginTop: '0.5rem' }}>
-            /join?chainId=11155111&faucet=0x123...&token=0x456...&amount=1&decimals=18
-          </code>
-        </div>
-      )}
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Invalid or Missing Parameters</CardTitle>
+              <CardDescription>This page requires valid URL parameters to function</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p>This page requires the following URL parameters:</p>
+              <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                <li>chainId - Network chain ID (e.g., 11155111 for Sepolia)</li>
+                <li>faucet - FaucetMinter contract address</li>
+                <li>token - GovernanceERC20 token address</li>
+                <li>amount - Tokens per claim (display value)</li>
+                <li>decimals - Token decimals for display</li>
+              </ul>
+              <div>
+                <p className="font-medium mb-2">Example URL:</p>
+                <code className="bg-muted p-2 rounded text-xs block overflow-x-auto">
+                  /join?chainId=11155111&faucet=0x123...&token=0x456...&amount=1&decimals=18
+                </code>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   )
 }
