@@ -60,3 +60,16 @@ Deep link → Middleware validation → Page render → Parameter validation →
 - Missing params: Error UI with parameter requirements
 - Wrong network: Network switching prompt with chain names
 - Transaction errors: Formatted error messages with retry options
+
+**Proposal Creation Utilities:**
+- `validateContractCall()` - Guards against missing address, client, or wrong chain before contract calls
+- `generateProposalTimestamps()` - Creates proper start/end dates (now+60s to now+3days) to prevent estimation failures
+- `estimateProposalGas()` - Estimates gas with 30% safety buffer, capped at 900k for transaction reliability
+
+**Contract Call Pattern:**
+Both proposal routes (`merge-change`, `propose-faucet`) follow consistent pattern:
+1. Validate preconditions with `validateContractCall()`
+2. Build action array specific to route (signal emission or token role grant)  
+3. Generate proper timestamps with `generateProposalTimestamps()`
+4. Estimate gas safely with `estimateProposalGas()`
+5. Execute `writeContract()` with estimated gas and account parameter

@@ -4,6 +4,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount, useChainId, useWriteContract, usePublicClient } from 'wagmi'
 import { encodeFunctionData } from 'viem'
 import { TOKEN_VOTING_ABI } from '../lib/abis'
+import { validateContractCall, generateProposalTimestamps, estimateProposalGas } from '../lib/contractUtils'
 // Middleware handles validation - page just parses params
 import { getChainName } from '../lib/chainUtils'
 import NetworkSwitcher from '../components/NetworkSwitcher'
@@ -31,41 +32,37 @@ export default function ProposeFaucetPage() {
   const isCorrectChain = chainId === requiredChainId
 
   const createProposal = async () => {
-    // Hard guards - return early if preconditions not met
-    if (!params || !client || !address || !isCorrectChain) return
+    // Validate preconditions before contract calls
+    if (!validateContractCall({ params, client, address, isCorrectChain })) return
 
     try {
       // Build single action: Call token.grantMintRole(faucet)
       const actions = [
         {
-          to: params.token as `0x${string}`,
+          to: params!.token as `0x${string}`,
           value: 0n,
           data: encodeFunctionData({
             abi: [{ name: 'grantMintRole', type: 'function', inputs: [{ name: 'account', type: 'address' }] }],
             functionName: 'grantMintRole',
-            args: [params.faucet as `0x${string}`],
+            args: [params!.faucet as `0x${string}`],
           }),
         },
       ]
 
-      // Use real timestamps to avoid estimator fallback
-      const now = Math.floor(Date.now() / 1000)
-      const startDate = BigInt(now + 60)          // starts in 1 min
-      const endDate   = BigInt(now + 3 * 24 * 3600) // ends in ~3 days
+      // Generate proper proposal timestamps
+      const { startDate, endDate } = generateProposalTimestamps()
 
-      // Estimate and cap gas when calling createProposal
-      const est = await client.estimateContractGas({
-        address: params.plugin as `0x${string}`,
+      // Estimate gas with safety buffer and cap
+      const gasLimit = await estimateProposalGas(client!, {
+        address: params!.plugin as `0x${string}`,
         abi: TOKEN_VOTING_ABI,
         functionName: 'createProposal',
         args: ['0x', actions, 0n, startDate, endDate, 0, false],
-        account: address as `0x${string}`, // Critical to avoid null-sender simulation
+        account: address as `0x${string}`,
       })
-      const gas = est * 13n / 10n                // +30%
-      const gasLimit = gas > 900_000n ? 900_000n : gas
 
       await writeContract({
-        address: params.plugin as `0x${string}`,
+        address: params!.plugin as `0x${string}`,
         abi: TOKEN_VOTING_ABI,
         functionName: 'createProposal',
         args: ['0x', actions, 0n, startDate, endDate, 0, false],

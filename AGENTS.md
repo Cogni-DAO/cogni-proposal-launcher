@@ -85,6 +85,7 @@ Deep link → Middleware validation → Page render → Wallet connect → Trans
 - `src/lib/deeplink.ts` - Generic parameter validation with typed specs
 - `src/lib/deeplinkSpecs.ts` - Route-specific validation rules  
 - `src/lib/chainUtils.ts` - Chain name resolution utilities
+- `src/lib/contractUtils.ts` - Contract call validation, gas estimation, and timestamp utilities
 - `src/components/NetworkSwitcher.tsx` - Reusable network switching UI
 - `src/middleware.ts` - Server-side parameter validation (returns 400 for invalid links)
 
