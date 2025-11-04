@@ -1,10 +1,11 @@
 import { useRouter } from 'next/router'
 import { useMemo } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
-import { useAccount, useChainId, useWriteContract } from 'wagmi'
+import { useAccount, useChainId, useWriteContract, usePublicClient } from 'wagmi'
 import { encodeFunctionData } from 'viem'
 import { createProposalMetadata, ProposalPreview } from '../components/ProposalMetadata'
 import { COGNI_SIGNAL_ABI, TOKEN_VOTING_ABI } from '../lib/abis'
+import { validateContractCall, generateProposalTimestamps, estimateProposalGas } from '../lib/contractUtils'
 import { validate } from '../lib/deeplink'
 import { mergeSpec } from '../lib/deeplinkSpecs'
 import { getChainName } from '../lib/chainUtils'
@@ -16,6 +17,7 @@ export default function MergeChangePage() {
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
   const { writeContract, isPending, isSuccess, error, data } = useWriteContract()
+  const client = usePublicClient()
   
   const params = useMemo(() => (
     router.isReady ? validate(router.query, mergeSpec) : null
@@ -39,7 +41,8 @@ export default function MergeChangePage() {
   }
 
   const createProposal = async () => {
-    if (!params) return
+    // Validate preconditions before contract calls
+    if (!validateContractCall({ params, client, address, isCorrectChain })) return
 
     try {
       // Step 0: Create and upload metadata
@@ -56,34 +59,48 @@ export default function MergeChangePage() {
         args: [
           'github',                    // vcs
           getDecodedRepoUrl(), // repoUrl (decode URL encoding)
-          params.action,               // action
-          params.target,               // target
-          params.pr,                   // resource (PR number)
+          params!.action,               // action
+          params!.target,               // target
+          params!.pr,                   // resource (PR number)
           '0x'                         // extra (empty bytes)
         ],
       })
 
       // Step 2: Create the Action structure for Aragon
       const actions = [{
-        to: params.signal as `0x${string}`,  // CogniSignal contract address
+        to: params!.signal as `0x${string}`,  // CogniSignal contract address
         value: BigInt(0),                    // No ETH value
         data: signalCallData,                // Encoded function call
       }]
 
+      // Generate proper proposal timestamps
+      const { startDate, endDate } = generateProposalTimestamps()
+
+      // Estimate gas with safety buffer and cap
+      const gasLimit = await estimateProposalGas(client!, {
+        address: params!.plugin as `0x${string}`,
+        abi: TOKEN_VOTING_ABI,
+        functionName: 'createProposal',
+        args: [metadataBytes as `0x${string}`, actions, 0n, startDate, endDate, 0, false],
+        account: address as `0x${string}`,
+      })
+
       // Step 3: Create the proposal
       await writeContract({
-        address: params.plugin as `0x${string}`,  // Aragon plugin address
+        address: params!.plugin as `0x${string}`,  // Aragon plugin address
         abi: TOKEN_VOTING_ABI,
         functionName: 'createProposal',
         args: [
           metadataBytes as `0x${string}`, // _metadata (HTTPS URL or empty)
           actions,   // _actions
-          BigInt(0), // _allowFailureMap (no failures allowed)
-          BigInt(0), // _startDate (immediate)
-          BigInt(0), // _endDate (plugin default)
+          0n,        // _allowFailureMap (no failures allowed)
+          startDate, // _startDate (proper timestamp)
+          endDate,   // _endDate (proper timestamp)
           0,         // _voteOption (None)
           false      // _tryEarlyExecution
         ],
+        gas: gasLimit,
+        account: address as `0x${string}`,
       })
     } catch (error) {
       console.error('Failed to create proposal:', error)

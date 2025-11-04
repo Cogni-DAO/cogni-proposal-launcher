@@ -35,10 +35,9 @@ Next.js pages that handle validated deep links and convert them into blockchain 
 **URL Params:** `dao`, `plugin`, `token`, `faucet`, `chainId`  
 **Flow:** Parameter validation → Connect wallet → Network switching → Show permission summary → Create proposal → Grant faucet permissions
 **Components:** Uses `NetworkSwitcher` and `ProposalActionButton` for consistent proposal creation UX
-**Contract:** Creates proposal with 3 permission grants:
-- MINT_PERMISSION: `grant(token, faucet, 0x154c0081...)` - Allows faucet to mint tokens
-- CONFIG_PERMISSION: `grant(faucet, dao, 0x4daa3c18...)` - Allows DAO to configure faucet  
-- PAUSE_PERMISSION: `grant(faucet, dao, 0xe1493260...)` - Allows DAO to pause faucet
+**Contract:** Creates single-action proposal calling `token.grantMintRole(faucet)` to enable faucet minting
+**Validation:** Guards against missing address, client, or wrong chain before contract calls
+**Gas Management:** Estimates gas with 30% padding, caps at 900k to prevent failures
 
 ## Shared Architecture
 
@@ -61,3 +60,16 @@ Deep link → Middleware validation → Page render → Parameter validation →
 - Missing params: Error UI with parameter requirements
 - Wrong network: Network switching prompt with chain names
 - Transaction errors: Formatted error messages with retry options
+
+**Proposal Creation Utilities:**
+- `validateContractCall()` - Guards against missing address, client, or wrong chain before contract calls
+- `generateProposalTimestamps()` - Creates proper start/end dates (now+60s to now+3days) to prevent estimation failures
+- `estimateProposalGas()` - Estimates gas with 30% safety buffer, capped at 900k for transaction reliability
+
+**Contract Call Pattern:**
+Both proposal routes (`merge-change`, `propose-faucet`) follow consistent pattern:
+1. Validate preconditions with `validateContractCall()`
+2. Build action array specific to route (signal emission or token role grant)  
+3. Generate proper timestamps with `generateProposalTimestamps()`
+4. Estimate gas safely with `estimateProposalGas()`
+5. Execute `writeContract()` with estimated gas and account parameter
