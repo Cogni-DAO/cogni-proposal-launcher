@@ -76,16 +76,16 @@ interface ProposalPreviewProps {
 
 export function ProposalPreview({ title, summary }: ProposalPreviewProps) {
   return (
-    <div style={{ backgroundColor: '#d4edda', padding: '1rem', borderRadius: '8px', marginBottom: '1rem', border: '1px solid #c3e6cb' }}>
-      <p><strong>📝 Proposal Title:</strong></p>
-      <p style={{ fontSize: '16px', fontWeight: 'bold', color: '#155724' }}>
+    <div className="bg-secondary border border-border rounded-lg p-4 mb-4">
+      <p className="text-foreground font-semibold mb-3">📝 Proposal Title:</p>
+      <p className="text-lg font-bold text-foreground mb-2">
         {title}
       </p>
-      <p style={{ fontSize: '14px', marginTop: '0.5rem', color: '#155724' }}>
+      <p className="text-sm text-muted-foreground mb-3">
         {summary}
       </p>
-      <p style={{ fontSize: '12px', marginTop: '0.5rem', color: '#666' }}>
-        <em>Title and summary will appear in description field for Aragon App compatibility</em>
+      <p className="text-xs text-muted-foreground italic">
+        Title and summary will appear in description field for Aragon App compatibility
       </p>
     </div>
   )

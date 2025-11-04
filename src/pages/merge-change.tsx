@@ -11,6 +11,8 @@ import { mergeSpec } from '../lib/deeplinkSpecs'
 import { getChainName } from '../lib/chainUtils'
 import NetworkSwitcher from '../components/NetworkSwitcher'
 import ProposalActionButton from '../components/ProposalActionButton'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card'
+import { Alert, AlertTitle, AlertDescription } from '../components/ui/alert'
 
 export default function MergeChangePage() {
   const router = useRouter()
@@ -108,84 +110,152 @@ export default function MergeChangePage() {
   }
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-      <h1>Create Merge Proposal</h1>
-      
-      <div style={{ marginBottom: '2rem' }}>
-        <ConnectButton />
-      </div>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto py-8 px-4 max-w-4xl">
+        <div className="mb-8 text-center">
+          <h1 className="text-4xl font-bold text-foreground mb-4">Create Merge Proposal</h1>
+          <p className="text-lg text-muted-foreground">Submit a governance proposal to merge a pull request</p>
+        </div>
+        
+        <div className="mb-8 flex justify-center">
+          <ConnectButton />
+        </div>
 
-      {params ? (
-        <div>
-          <NetworkSwitcher
-            isConnected={isConnected}
-            currentChainId={chainId}
-            requiredChainId={requiredChainId}
-            isCorrectChain={isCorrectChain}
-          />
+        {params ? (
+          <div className="space-y-6">
+            <NetworkSwitcher
+              isConnected={isConnected}
+              currentChainId={chainId}
+              requiredChainId={requiredChainId}
+              isCorrectChain={isCorrectChain}
+            />
 
-          <h2>Proposal Summary</h2>
-          <div style={{ backgroundColor: '#f5f5f5', padding: '1rem', borderRadius: '8px', marginBottom: '2rem' }}>
-            <p><strong>Repository:</strong> {getDecodedRepoUrl()}</p>
-            <p><strong>Pull Request:</strong> #{params.pr}</p>
-            <p><strong>Action:</strong> {params.action}</p>
-            <p><strong>Target:</strong> {params.target}</p>
-            <p><strong>Network:</strong> {getChainName(params.chainId)} (Chain ID: {params.chainId})</p>
-            <hr style={{ margin: '1rem 0', border: 'none', borderTop: '1px solid #ddd' }} />
-            <p><strong>DAO:</strong> {params.dao}</p>
-            <p><strong>Plugin:</strong> {params.plugin}</p>
-            <p><strong>Signal Contract:</strong> {params.signal}</p>
-          </div>
-
-          {isConnected ? (
-            <div>
-              <h3>Connected as: {address}</h3>
-              <div style={{ marginTop: '2rem' }}>
-                <h3>Proposal Preview</h3>
-                <ProposalPreview 
-                  title={generateProposalTitle()}
-                  summary={generateProposalSummary()}
-                />
-
-                <h3>Proposal Actions</h3>
-                <ProposalActionButton
-                  onAction={createProposal}
-                  isPending={isPending}
-                  isSuccess={isSuccess}
-                  data={data}
-                  error={error}
-                  isCorrectChain={isCorrectChain}
-                  chainId={params.chainId}
-                  buttonText="Create Proposal"
-                  pendingText="Creating Proposal..."
-                  daoAddress={params.dao}
-                >
-                  <div style={{ backgroundColor: '#e8f4fd', padding: '1rem', borderRadius: '8px' }}>
-                    <p><strong>Action 1:</strong> Call CogniSignal.signal()</p>
-                    <p><strong>Target:</strong> {params.signal}</p>
-                    <p><strong>Parameters:</strong></p>
-                    <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem' }}>
-                      <li>vcs: &quot;github&quot;</li>
-                      <li>repoUrl: &quot;{getDecodedRepoUrl()}&quot;</li>
-                      <li>action: &quot;{params.action}&quot;</li>
-                      <li>target: &quot;{params.target}&quot;</li>
-                      <li>resource: &quot;{params.pr}&quot;</li>
-                      <li>extra: 0x</li>
-                    </ul>
+            <Card>
+              <CardHeader>
+                <CardTitle>Proposal Summary</CardTitle>
+                <CardDescription>Review the pull request and governance details</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Repository</p>
+                    <p className="font-mono text-sm break-all">{getDecodedRepoUrl()}</p>
                   </div>
-                </ProposalActionButton>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Pull Request</p>
+                    <p className="text-lg font-semibold">#{params.pr}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Action</p>
+                    <p className="text-lg font-semibold capitalize">{params.action}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Target</p>
+                    <p className="text-lg font-semibold">{params.target}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Network</p>
+                    <p className="text-lg font-semibold">{getChainName(params.chainId)} (Chain ID: {params.chainId})</p>
+                  </div>
+                </div>
+                
+                <div className="border-t pt-4">
+                  <p className="text-sm font-medium text-muted-foreground mb-3">Contract Addresses</p>
+                  <div className="grid grid-cols-1 gap-3">
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground">DAO</p>
+                      <p className="font-mono text-sm break-all">{params.dao}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground">Plugin</p>
+                      <p className="font-mono text-sm break-all">{params.plugin}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground">Signal Contract</p>
+                      <p className="font-mono text-sm break-all">{params.signal}</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {isConnected ? (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Connected Wallet</CardTitle>
+                    <CardDescription>Currently connected as</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="font-mono text-sm break-all">{address}</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Proposal Preview</CardTitle>
+                    <CardDescription>How this proposal will appear in the DAO</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ProposalPreview 
+                      title={generateProposalTitle()}
+                      summary={generateProposalSummary()}
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Proposal Actions</CardTitle>
+                    <CardDescription>Technical details of what this proposal will execute</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-secondary p-4 rounded-lg mb-6">
+                      <p className="font-semibold mb-2">Action 1: Call CogniSignal.signal()</p>
+                      <p className="text-sm text-muted-foreground mb-3">Target: {params.signal}</p>
+                      <div>
+                        <p className="font-medium text-sm mb-2">Parameters:</p>
+                        <ul className="space-y-1 text-sm font-mono">
+                          <li>• vcs: &quot;github&quot;</li>
+                          <li>• repoUrl: &quot;{getDecodedRepoUrl()}&quot;</li>
+                          <li>• action: &quot;{params.action}&quot;</li>
+                          <li>• target: &quot;{params.target}&quot;</li>
+                          <li>• resource: &quot;{params.pr}&quot;</li>
+                          <li>• extra: 0x</li>
+                        </ul>
+                      </div>
+                    </div>
+                    
+                    <ProposalActionButton
+                      onAction={createProposal}
+                      isPending={isPending}
+                      isSuccess={isSuccess}
+                      data={data}
+                      error={error}
+                      isCorrectChain={isCorrectChain}
+                      chainId={params.chainId}
+                      buttonText="Create Proposal"
+                      pendingText="Creating Proposal..."
+                      daoAddress={params.dao}
+                    />
+                  </CardContent>
+                </Card>
               </div>
-            </div>
-          ) : (
-            <p style={{ color: '#666' }}>Please connect your wallet to continue</p>
-          )}
-        </div>
-      ) : (
-        <div style={{ color: '#red' }}>
-          <h2>Missing Required Parameters</h2>
-          <p>This page requires valid URL parameters. Please check the link and try again.</p>
-        </div>
-      )}
+            ) : (
+              <div className="text-center text-muted-foreground">
+                <p>Please connect your wallet to continue</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <Alert variant="destructive">
+            <AlertTitle>Missing Required Parameters</AlertTitle>
+            <AlertDescription>
+              This page requires valid URL parameters. Please check the link and try again.
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
     </div>
   )
 }
