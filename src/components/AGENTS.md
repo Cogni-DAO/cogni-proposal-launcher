@@ -10,6 +10,7 @@ Reusable React components that handle common UI patterns across proposal creatio
 **Usage:** All pages that require specific network connections  
 **Props:** `isConnected`, `currentChainId`, `requiredChainId`, `isCorrectChain`  
 **Functionality:** Detects network mismatches and provides switching UI with chain names  
+**Styling:** Dark theme with black background, yellow warning borders, Tailwind classes  
 **Integration:** Consumes `getChainName()` utility for human-readable network labels
 
 ### `ProposalMetadata.tsx`
@@ -40,7 +41,8 @@ Reusable React components that handle common UI patterns across proposal creatio
 - Implements Aragon UI workaround: puts title + summary + description all in the `description` field
 
 **UI Component:** `ProposalPreview({ title, summary })`  
-- Shows green preview box with proposal title and summary
+- Dark secondary background with consistent theme colors  
+- Uses Tailwind classes instead of inline styles from cogni-site design system
 - Explains that content will appear in description field due to Aragon UI limitations
 
 ### `ProposalActionButton.tsx`
@@ -61,8 +63,13 @@ Reusable React components that handle common UI patterns across proposal creatio
 - Links to `app.aragon.org/dao/ethereum-sepolia/{daoAddress}/proposals`
 - Currently hardcoded to Sepolia network
 
-## Shared Patterns
+## Design System Integration
 
-**Chain Validation:** Components expect `isCorrectChain` boolean and handle disabled states accordingly  
-**Error Display:** Consistent red-background error boxes with formatted messages  
-**Success States:** Green-background success boxes with transaction hashes and external links
+**UI Components:** New `ui/` directory contains reusable components copied from cogni-site:
+- `Button`, `Card`, `Alert` components with dark theme styling
+- Consistent spacing, typography, and color variables
+
+**Styling Approach:** 
+- Tailwind CSS classes replace inline styles
+- Dark theme as default with CSS variable integration  
+- Responsive design patterns from cogni-site
